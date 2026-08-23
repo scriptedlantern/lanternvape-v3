@@ -7,20 +7,23 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 
 local Config = {
 	Name = "LanternVape",
-	Version = "3.0.0",
+	Version = "1.0.0",
+	Icon = "rbxassetid://0",
+	LoadingTime = 2.2,
+
 	Orange = Color3.fromRGB(220, 115, 35),
 	OrangeDark = Color3.fromRGB(145, 68, 20),
-	Black = Color3.fromRGB(10, 10, 10),
-	Dark = Color3.fromRGB(17, 17, 17),
-	Darker = Color3.fromRGB(22, 22, 22),
+	Black = Color3.fromRGB(8, 8, 8),
+	Dark = Color3.fromRGB(14, 14, 14),
+	Darker = Color3.fromRGB(21, 21, 21),
 	White = Color3.fromRGB(235, 235, 235),
 	Gray = Color3.fromRGB(145, 145, 145)
 }
 
-local Existing = PlayerGui:FindFirstChild("LanternVape")
+local OldGui = PlayerGui:FindFirstChild("LanternVape")
 
-if Existing then
-	Existing:Destroy()
+if OldGui then
+	OldGui:Destroy()
 end
 
 local Gui = Instance.new("ScreenGui")
@@ -30,11 +33,71 @@ Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Gui.Parent = PlayerGui
 
+local function Tween(Object, Time, Properties)
+	return TweenService:Create(
+		Object,
+		TweenInfo.new(Time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		Properties
+	)
+end
+
+local Loading = Instance.new("Frame")
+Loading.Name = "Loading"
+Loading.Size = UDim2.fromScale(1, 1)
+Loading.BackgroundColor3 = Config.Black
+Loading.BackgroundTransparency = 0.12
+Loading.BorderSizePixel = 0
+Loading.ZIndex = 100
+Loading.Parent = Gui
+
+local LoadingTint = Instance.new("Frame")
+LoadingTint.Size = UDim2.fromScale(1, 1)
+LoadingTint.BackgroundColor3 = Config.Orange
+LoadingTint.BackgroundTransparency = 0.96
+LoadingTint.BorderSizePixel = 0
+LoadingTint.ZIndex = 101
+LoadingTint.Parent = Loading
+
+local LoadingTitle = Instance.new("TextLabel")
+LoadingTitle.Size = UDim2.new(1, 0, 0, 50)
+LoadingTitle.Position = UDim2.new(0, 0, 0.5, -35)
+LoadingTitle.BackgroundTransparency = 1
+LoadingTitle.Text = "LOADING LANTERNVAPE.."
+LoadingTitle.TextColor3 = Config.Orange
+LoadingTitle.TextSize = 25
+LoadingTitle.Font = Enum.Font.GothamBold
+LoadingTitle.ZIndex = 102
+LoadingTitle.Parent = Loading
+
+local LoadingBarBackground = Instance.new("Frame")
+LoadingBarBackground.Size = UDim2.fromOffset(240, 4)
+LoadingBarBackground.Position = UDim2.new(0.5, -120, 0.5, 25)
+LoadingBarBackground.BackgroundColor3 = Config.Darker
+LoadingBarBackground.BorderSizePixel = 0
+LoadingBarBackground.ZIndex = 102
+LoadingBarBackground.Parent = Loading
+
+local LoadingBarCorner = Instance.new("UICorner")
+LoadingBarCorner.CornerRadius = UDim.new(1, 0)
+LoadingBarCorner.Parent = LoadingBarBackground
+
+local LoadingBar = Instance.new("Frame")
+LoadingBar.Size = UDim2.new(0, 0, 1, 0)
+LoadingBar.BackgroundColor3 = Config.Orange
+LoadingBar.BorderSizePixel = 0
+LoadingBar.ZIndex = 103
+LoadingBar.Parent = LoadingBarBackground
+
+local LoadingBarCorner2 = Instance.new("UICorner")
+LoadingBarCorner2.CornerRadius = UDim.new(1, 0)
+LoadingBarCorner2.Parent = LoadingBar
+
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(1, -24, 1, -24)
-Main.Position = UDim2.fromOffset(12, 12)
+Main.Size = UDim2.new(1, -30, 1, -30)
+Main.Position = UDim2.new(0, 15, 0, 15)
 Main.BackgroundTransparency = 1
+Main.Visible = false
 Main.Parent = Gui
 
 local Brand = Instance.new("TextLabel")
@@ -42,7 +105,7 @@ Brand.Name = "Brand"
 Brand.Size = UDim2.fromOffset(190, 42)
 Brand.Position = UDim2.fromOffset(4, 4)
 Brand.BackgroundColor3 = Config.Black
-Brand.BackgroundTransparency = 0.08
+Brand.BackgroundTransparency = 0.05
 Brand.BorderSizePixel = 0
 Brand.Text = Config.Name
 Brand.TextColor3 = Config.White
@@ -53,25 +116,24 @@ Brand.Parent = Main
 
 local BrandPadding = Instance.new("UIPadding")
 BrandPadding.PaddingLeft = UDim.new(0, 14)
-BrandPadding.Parent = Brand
+Brand.Parent = Brand
 
 local BrandCorner = Instance.new("UICorner")
 BrandCorner.CornerRadius = UDim.new(0, 5)
 BrandCorner.Parent = Brand
 
-local AccentLine = Instance.new("Frame")
-AccentLine.Size = UDim2.new(1, 0, 0, 2)
-AccentLine.Position = UDim2.new(0, 0, 1, -2)
-AccentLine.BackgroundColor3 = Config.Orange
-AccentLine.BorderSizePixel = 0
-AccentLine.Parent = Brand
+local BrandAccent = Instance.new("Frame")
+BrandAccent.Size = UDim2.new(1, 0, 0, 2)
+BrandAccent.Position = UDim2.new(0, 0, 1, -2)
+BrandAccent.BackgroundColor3 = Config.Orange
+BrandAccent.BorderSizePixel = 0
+BrandAccent.Parent = Brand
 
 local MenuButton = Instance.new("TextButton")
-MenuButton.Name = "MenuButton"
 MenuButton.Size = UDim2.fromOffset(42, 42)
 MenuButton.Position = UDim2.fromOffset(202, 4)
 MenuButton.BackgroundColor3 = Config.Black
-MenuButton.BackgroundTransparency = 0.08
+MenuButton.BackgroundTransparency = 0.05
 MenuButton.BorderSizePixel = 0
 MenuButton.Text = "☰"
 MenuButton.TextColor3 = Config.White
@@ -84,31 +146,31 @@ local MenuCorner = Instance.new("UICorner")
 MenuCorner.CornerRadius = UDim.new(0, 5)
 MenuCorner.Parent = MenuButton
 
-MenuButton.MouseEnter:Connect(function()
-	TweenService:Create(
-		MenuButton,
-		TweenInfo.new(0.12),
-		{BackgroundColor3 = Config.OrangeDark}
-	):Play()
-end)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.fromOffset(42, 42)
+CloseButton.Position = UDim2.new(1, -46, 0, 4)
+CloseButton.BackgroundColor3 = Config.Black
+CloseButton.BackgroundTransparency = 0.05
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "×"
+CloseButton.TextColor3 = Config.White
+CloseButton.TextSize = 25
+CloseButton.Font = Enum.Font.Gotham
+CloseButton.AutoButtonColor = false
+CloseButton.Parent = Main
 
-MenuButton.MouseLeave:Connect(function()
-	TweenService:Create(
-		MenuButton,
-		TweenInfo.new(0.12),
-		{BackgroundColor3 = Config.Black}
-	):Play()
-end)
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 5)
+CloseCorner.Parent = CloseButton
 
 local Search = Instance.new("TextBox")
-Search.Name = "Search"
 Search.Size = UDim2.fromOffset(230, 34)
 Search.Position = UDim2.new(0.5, -115, 0, 8)
 Search.BackgroundColor3 = Config.Black
-Search.BackgroundTransparency = 0.08
+Search.BackgroundTransparency = 0.05
 Search.BorderSizePixel = 0
 Search.PlaceholderText = "Search..."
-Search.PlaceholderColor3 = Color3.fromRGB(115, 115, 115)
+Search.PlaceholderColor3 = Color3.fromRGB(110, 110, 110)
 Search.Text = ""
 Search.TextColor3 = Config.White
 Search.TextSize = 13
@@ -128,13 +190,11 @@ SearchStroke.Parent = Search
 
 local SearchPadding = Instance.new("UIPadding")
 SearchPadding.PaddingLeft = UDim.new(0, 12)
-SearchPadding.PaddingRight = UDim.new(0, 12)
 SearchPadding.Parent = Search
 
 local Version = Instance.new("TextLabel")
-Version.Name = "Version"
-Version.Size = UDim2.fromOffset(80, 42)
-Version.Position = UDim2.new(1, -84, 0, 4)
+Version.Size = UDim2.fromOffset(75, 42)
+Version.Position = UDim2.new(1, -92, 0, 4)
 Version.BackgroundTransparency = 1
 Version.Text = "v" .. Config.Version
 Version.TextColor3 = Config.Gray
@@ -151,19 +211,18 @@ Content.BackgroundTransparency = 1
 Content.BorderSizePixel = 0
 Content.ScrollBarThickness = 3
 Content.ScrollBarImageColor3 = Config.Orange
-Content.ScrollBarImageTransparency = 0.35
-Content.ScrollingDirection = Enum.ScrollingDirection.X
-Content.CanvasSize = UDim2.new(0, 0, 0, 0)
-Content.AutomaticCanvasSize = Enum.AutomaticSize.X
+Content.ScrollingDirection = Enum.ScrollingDirection.Y
+Content.CanvasSize = UDim2.new()
+Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
 Content.Parent = Main
 
-local ColumnLayout = Instance.new("UIListLayout")
-ColumnLayout.FillDirection = Enum.FillDirection.Horizontal
-ColumnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-ColumnLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-ColumnLayout.Padding = UDim.new(0, 7)
-ColumnLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ColumnLayout.Parent = Content
+local Grid = Instance.new("UIGridLayout")
+Grid.CellPadding = UDim2.fromOffset(7, 7)
+Grid.CellSize = UDim2.new(0.2, -7, 0, 100)
+Grid.FillDirection = Enum.FillDirection.Horizontal
+Grid.FillDirectionMaxCells = 5
+Grid.SortOrder = Enum.SortOrder.LayoutOrder
+Grid.Parent = Content
 
 local Categories = {
 	"Combat",
@@ -178,22 +237,26 @@ local CategoryPanels = {}
 local function CreateCategory(Name, Order)
 	local Panel = Instance.new("Frame")
 	Panel.Name = Name
-	Panel.Size = UDim2.fromOffset(225, 100)
 	Panel.BackgroundColor3 = Config.Black
-	Panel.BackgroundTransparency = 0.18
+	Panel.BackgroundTransparency = 0.12
 	Panel.BorderSizePixel = 0
 	Panel.LayoutOrder = Order
 	Panel.Parent = Content
 
 	local Corner = Instance.new("UICorner")
-	Corner.CornerRadius = UDim.new(0, 4)
+	Corner.CornerRadius = UDim.new(0, 5)
 	Corner.Parent = Panel
 
+	local Stroke = Instance.new("UIStroke")
+	Stroke.Color = Config.Orange
+	Stroke.Transparency = 0.88
+	Stroke.Thickness = 1
+	Stroke.Parent = Panel
+
 	local Header = Instance.new("TextLabel")
-	Header.Name = "Header"
 	Header.Size = UDim2.new(1, 0, 0, 42)
 	Header.BackgroundColor3 = Config.Black
-	Header.BackgroundTransparency = 0.05
+	Header.BackgroundTransparency = 0.02
 	Header.BorderSizePixel = 0
 	Header.Text = Name
 	Header.TextColor3 = Config.White
@@ -202,44 +265,40 @@ local function CreateCategory(Name, Order)
 	Header.TextXAlignment = Enum.TextXAlignment.Left
 	Header.Parent = Panel
 
-	local HeaderPadding = Instance.new("UIPadding")
-	HeaderPadding.PaddingLeft = UDim.new(0, 16)
-	HeaderPadding.Parent = Header
+	local Padding = Instance.new("UIPadding")
+	Padding.PaddingLeft = UDim.new(0, 14)
+	Padding.Parent = Header
 
 	local HeaderCorner = Instance.new("UICorner")
-	HeaderCorner.CornerRadius = UDim.new(0, 4)
+	HeaderCorner.CornerRadius = UDim.new(0, 5)
 	HeaderCorner.Parent = Header
 
-	local Line = Instance.new("Frame")
-	Line.Name = "Accent"
-	Line.Size = UDim2.new(1, 0, 0, 2)
-	Line.Position = UDim2.new(0, 0, 1, -2)
-	Line.BackgroundColor3 = Config.Orange
-	Line.BackgroundTransparency = 0.25
-	Line.BorderSizePixel = 0
-	Line.Parent = Header
+	local Accent = Instance.new("Frame")
+	Accent.Size = UDim2.new(1, 0, 0, 2)
+	Accent.Position = UDim2.new(0, 0, 1, -2)
+	Accent.BackgroundColor3 = Config.Orange
+	Accent.BackgroundTransparency = 0.15
+	Accent.BorderSizePixel = 0
+	Accent.Parent = Header
 
 	local Chevron = Instance.new("TextLabel")
-	Chevron.Size = UDim2.fromOffset(32, 42)
-	Chevron.Position = UDim2.new(1, -38, 0, 0)
+	Chevron.Size = UDim2.fromOffset(30, 42)
+	Chevron.Position = UDim2.new(1, -35, 0, 0)
 	Chevron.BackgroundTransparency = 1
 	Chevron.Text = "⌄"
-	Chevron.TextColor3 = Config.White
-	Chevron.TextSize = 19
+	Chevron.TextColor3 = Config.Gray
+	Chevron.TextSize = 18
 	Chevron.Font = Enum.Font.GothamBold
 	Chevron.Parent = Header
 
 	local Blank = Instance.new("Frame")
 	Blank.Name = "Modules"
-	Blank.Size = UDim2.new(1, 0, 0, 58)
+	Blank.Size = UDim2.new(1, 0, 1, -42)
 	Blank.Position = UDim2.fromOffset(0, 42)
 	Blank.BackgroundTransparency = 1
-	Blank.BorderSizePixel = 0
 	Blank.Parent = Panel
 
 	CategoryPanels[Name] = Panel
-
-	return Panel
 end
 
 for Index, Name in ipairs(Categories) do
@@ -249,13 +308,13 @@ end
 local Menu = Instance.new("Frame")
 Menu.Name = "SideMenu"
 Menu.Size = UDim2.fromOffset(190, 330)
-Menu.Position = UDim2.fromOffset(12, 62)
+Menu.Position = UDim2.fromOffset(10, 58)
 Menu.BackgroundColor3 = Config.Black
-Menu.BackgroundTransparency = 0.03
+Menu.BackgroundTransparency = 0.02
 Menu.BorderSizePixel = 0
 Menu.Visible = false
 Menu.ZIndex = 50
-Menu.Parent = Gui
+Menu.Parent = Main
 
 local MenuCorner = Instance.new("UICorner")
 MenuCorner.CornerRadius = UDim.new(0, 6)
@@ -288,15 +347,6 @@ MenuAccent.BackgroundColor3 = Config.Orange
 MenuAccent.BorderSizePixel = 0
 MenuAccent.Parent = MenuHeader
 
-local MenuItems = {
-	{"⚙", "Settings"},
-	{"♙", "Profiles"},
-	{"◎", "Targets"},
-	{"◆", "Themes"},
-	{"⌨", "Keybinds"},
-	{"?", "About"}
-}
-
 local MenuList = Instance.new("UIListLayout")
 MenuList.Padding = UDim.new(0, 4)
 MenuList.SortOrder = Enum.SortOrder.LayoutOrder
@@ -308,15 +358,20 @@ MenuPadding.PaddingLeft = UDim.new(0, 5)
 MenuPadding.PaddingRight = UDim.new(0, 5)
 MenuPadding.Parent = Menu
 
-for Index, Data in ipairs(MenuItems) do
-	local IconText = Data[1]
-	local ItemName = Data[2]
+local MenuItems = {
+	{"⚙", "Settings"},
+	{"♙", "Profiles"},
+	{"◎", "Targets"},
+	{"◆", "Themes"},
+	{"⌨", "Keybinds"},
+	{"?", "About"}
+}
 
+for Index, Data in ipairs(MenuItems) do
 	local Button = Instance.new("TextButton")
-	Button.Name = ItemName
+	Button.Name = Data[2]
 	Button.Size = UDim2.new(1, 0, 0, 38)
 	Button.BackgroundColor3 = Config.Darker
-	Button.BackgroundTransparency = 0.05
 	Button.BorderSizePixel = 0
 	Button.Text = ""
 	Button.AutoButtonColor = false
@@ -324,14 +379,14 @@ for Index, Data in ipairs(MenuItems) do
 	Button.ZIndex = 51
 	Button.Parent = Menu
 
-	local ButtonCorner = Instance.new("UICorner")
-	ButtonCorner.CornerRadius = UDim.new(0, 4)
-	ButtonCorner.Parent = Button
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = UDim.new(0, 4)
+	Corner.Parent = Button
 
 	local Icon = Instance.new("TextLabel")
 	Icon.Size = UDim2.fromOffset(38, 38)
 	Icon.BackgroundTransparency = 1
-	Icon.Text = IconText
+	Icon.Text = Data[1]
 	Icon.TextColor3 = Config.Orange
 	Icon.TextSize = 16
 	Icon.Font = Enum.Font.GothamBold
@@ -342,7 +397,7 @@ for Index, Data in ipairs(MenuItems) do
 	Text.Size = UDim2.new(1, -45, 1, 0)
 	Text.Position = UDim2.fromOffset(42, 0)
 	Text.BackgroundTransparency = 1
-	Text.Text = ItemName
+	Text.Text = Data[2]
 	Text.TextColor3 = Config.White
 	Text.TextSize = 13
 	Text.Font = Enum.Font.GothamSemibold
@@ -351,43 +406,89 @@ for Index, Data in ipairs(MenuItems) do
 	Text.Parent = Button
 
 	Button.MouseEnter:Connect(function()
-		TweenService:Create(
+		Tween(
 			Button,
-			TweenInfo.new(0.12),
-			{
-				BackgroundColor3 = Config.OrangeDark,
-				BackgroundTransparency = 0.1
-			}
+			0.12,
+			{BackgroundColor3 = Config.OrangeDark}
 		):Play()
 	end)
 
 	Button.MouseLeave:Connect(function()
-		TweenService:Create(
+		Tween(
 			Button,
-			TweenInfo.new(0.12),
-			{
-				BackgroundColor3 = Config.Darker,
-				BackgroundTransparency = 0.05
-			}
+			0.12,
+			{BackgroundColor3 = Config.Darker}
 		):Play()
-	end)
-
-	Button.MouseButton1Click:Connect(function()
-		print("[LanternVape] Selected:", ItemName)
 	end)
 end
 
 MenuButton.MouseButton1Click:Connect(function()
 	Menu.Visible = not Menu.Visible
+end)
 
-	if Menu.Visible then
-		Menu.BackgroundTransparency = 1
+CloseButton.MouseButton1Click:Connect(function()
+	Main.Visible = false
+	Menu.Visible = false
+end)
 
-		TweenService:Create(
-			Menu,
-			TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{BackgroundTransparency = 0.03}
-		):Play()
+local ToggleButton = Instance.new("ImageButton")
+ToggleButton.Name = "MobileToggle"
+ToggleButton.Size = UDim2.fromOffset(58, 58)
+ToggleButton.Position = UDim2.new(0, 18, 0.5, -29)
+ToggleButton.BackgroundColor3 = Config.Black
+ToggleButton.BackgroundTransparency = 0.08
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Image = Config.Icon
+ToggleButton.ScaleType = Enum.ScaleType.Fit
+ToggleButton.Visible = false
+ToggleButton.ZIndex = 200
+ToggleButton.Parent = Gui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 12)
+ToggleCorner.Parent = ToggleButton
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Color = Config.Orange
+ToggleStroke.Thickness = 2
+ToggleStroke.Transparency = 0.15
+ToggleStroke.Parent = ToggleButton
+
+local ToggleFallback = Instance.new("TextLabel")
+ToggleFallback.Size = UDim2.fromScale(1, 1)
+ToggleFallback.BackgroundTransparency = 1
+ToggleFallback.Text = "LV"
+ToggleFallback.TextColor3 = Config.Orange
+ToggleFallback.TextSize = 18
+ToggleFallback.Font = Enum.Font.GothamBold
+ToggleFallback.ZIndex = 201
+ToggleFallback.Parent = ToggleButton
+
+if Config.Icon ~= "rbxassetid://0" then
+	ToggleFallback.Visible = false
+end
+
+ToggleButton.MouseButton1Click:Connect(function()
+	Main.Visible = not Main.Visible
+
+	if not Main.Visible then
+		Menu.Visible = false
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(Input, Processed)
+	if Processed then
+		return
+	end
+
+	if Input.KeyCode == Enum.KeyCode.LeftShift
+		or Input.KeyCode == Enum.KeyCode.RightShift then
+
+		Main.Visible = not Main.Visible
+
+		if not Main.Visible then
+			Menu.Visible = false
+		end
 	end
 end)
 
@@ -419,12 +520,14 @@ Brand.InputBegan:Connect(function(Input)
 		Dragging = true
 		DragStart = Input.Position
 		StartPosition = Main.Position
+	end
+end)
 
-		Input.Changed:Connect(function()
-			if Input.UserInputState == Enum.UserInputState.End then
-				Dragging = false
-			end
-		end)
+UserInputService.InputEnded:Connect(function(Input)
+	if Input.UserInputType == Enum.UserInputType.MouseButton1
+		or Input.UserInputType == Enum.UserInputType.Touch then
+
+		Dragging = false
 	end
 end)
 
@@ -453,28 +556,80 @@ UIScale.Parent = Main
 
 local Camera = workspace.CurrentCamera
 
-local function UpdateScale()
+local function UpdateLayout()
 	if not Camera then
 		return
 	end
 
-	local Size = Camera.ViewportSize
+	local Width = Camera.ViewportSize.X
 
-	if Size.X < 600 then
-		UIScale.Scale = 0.65
-	elseif Size.X < 850 then
-		UIScale.Scale = 0.8
-	elseif Size.X < 1100 then
-		UIScale.Scale = 0.9
+	if Width < 600 then
+		UIScale.Scale = 0.72
+		Grid.FillDirectionMaxCells = 2
+		Grid.CellSize = UDim2.new(0.5, -7, 0, 100)
+	elseif Width < 900 then
+		UIScale.Scale = 0.82
+		Grid.FillDirectionMaxCells = 3
+		Grid.CellSize = UDim2.new(0.333333, -7, 0, 100)
+	elseif Width < 1200 then
+		UIScale.Scale = 0.92
+		Grid.FillDirectionMaxCells = 4
+		Grid.CellSize = UDim2.new(0.25, -7, 0, 100)
 	else
 		UIScale.Scale = 1
+		Grid.FillDirectionMaxCells = 5
+		Grid.CellSize = UDim2.new(0.2, -7, 0, 100)
 	end
 end
 
-UpdateScale()
+UpdateLayout()
 
 if Camera then
-	Camera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateScale)
+	Camera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateLayout)
+end
+
+Tween(
+	LoadingBar,
+	Config.LoadingTime,
+	{Size = UDim2.new(1, 0, 1, 0)}
+):Play()
+
+task.wait(Config.LoadingTime)
+
+Main.Visible = true
+
+Tween(
+	Loading,
+	0.35,
+	{BackgroundTransparency = 1}
+):Play()
+
+Tween(
+	LoadingTitle,
+	0.35,
+	{TextTransparency = 1}
+):Play()
+
+Tween(
+	LoadingBarBackground,
+	0.35,
+	{BackgroundTransparency = 1}
+):Play()
+
+Tween(
+	LoadingTint,
+	0.35,
+	{BackgroundTransparency = 1}
+):Play()
+
+task.wait(0.4)
+
+Loading:Destroy()
+
+local CameraSize = Camera and Camera.ViewportSize.X or 1000
+
+if CameraSize < 900 then
+	ToggleButton.Visible = true
 end
 
 print("[" .. Config.Name .. "] Loaded " .. Config.Version)
