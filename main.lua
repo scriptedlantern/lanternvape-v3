@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
 
 local Player = Players.LocalPlayer
 if not Player then return end
@@ -295,7 +296,7 @@ Content.BorderSizePixel = 0
 Content.ScrollBarThickness = 3
 Content.ScrollBarImageColor3 = Config.Orange
 Content.CanvasSize = UDim2.new(0, 0, 0, 0)
-Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Content.AutomaticCanvasSize = Enum.AutomaticSize.None
 Content.ScrollingDirection = Enum.ScrollingDirection.Y
 Content.Parent = Main
 
@@ -306,10 +307,12 @@ Grid.FillDirection = Enum.FillDirection.Horizontal
 Grid.FillDirectionMaxCells = 5
 Grid.SortOrder = Enum.SortOrder.LayoutOrder
 Grid.Parent = Content
+Grid.Enabled = false
 
 local Categories = {"Combat", "Blatant", "External", "Rendering", "Extra"}
 local CategoryPanels = {}
 local CategoryAccents = {}
+local CategoryMoved = {}
 
 local function CreateCategory(Name, Order)
     local Panel = Instance.new("Frame")
@@ -357,6 +360,48 @@ local function CreateCategory(Name, Order)
     Modules.Parent = Panel
 
     CategoryPanels[Name] = Panel
+
+    Header.Active = true
+    local DraggingCategory = false
+    local DragStart = nil
+    local StartPosition = nil
+
+    Header.InputBegan:Connect(function(Input)
+        if Input.UserInputType ~= Enum.UserInputType.MouseButton1
+            and Input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+
+        DraggingCategory = true
+        DragStart = Input.Position
+        StartPosition = Panel.Position
+        Panel.ZIndex = 20
+    end)
+
+    UserInputService.InputChanged:Connect(function(Input)
+        if not DraggingCategory then return end
+        if Input.UserInputType ~= Enum.UserInputType.MouseMovement
+            and Input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+
+        local Delta = Input.Position - DragStart
+        Panel.Position = UDim2.new(
+            StartPosition.X.Scale,
+            StartPosition.X.Offset + Delta.X,
+            StartPosition.Y.Scale,
+            StartPosition.Y.Offset + Delta.Y
+        )
+        CategoryMoved[Name] = true
+    end)
+
+    UserInputService.InputEnded:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1
+            or Input.UserInputType == Enum.UserInputType.Touch then
+            DraggingCategory = false
+            Panel.ZIndex = 1
+        end
+    end)
 end
 
 for Index, Name in ipairs(Categories) do
@@ -686,33 +731,46 @@ local ThemeColors = {
 }
 
 local function ApplyTheme(Color)
+    local OldAccent = Config.Orange
+    local OldDark = Config.OrangeDark
+
     Config.Orange = Color
     Config.OrangeDark = Color:Lerp(Color3.new(0, 0, 0), 0.35)
 
-    LoadingTint.BackgroundColor3 = Color
-    LoadingTitle.TextColor3 = Color
-    LoadingBar.BackgroundColor3 = Color
-    BrandAccent.BackgroundColor3 = Color
-    SideAccent.BackgroundColor3 = Color
-    MobileToggle:FindFirstChildOfClass("UIStroke").Color = Color
-    SearchIcon.ImageColor3 = Color
+    local function Recolor(Object)
+        if not Object or not Object.Parent then return end
 
-    for _, Accent in pairs(CategoryAccents) do
-        Accent.BackgroundColor3 = Color
+        pcall(function()
+            if Object:IsA("GuiObject") then
+                if Object.BackgroundColor3 == OldAccent or Object.BackgroundColor3 == OldDark then
+                    Object.BackgroundColor3 = Color
+                end
+                if Object:IsA("TextLabel") or Object:IsA("TextButton") or Object:IsA("TextBox") then
+                    if Object.TextColor3 == OldAccent or Object.TextColor3 == OldDark then
+                        Object.TextColor3 = Color
+                    end
+                end
+                if Object:IsA("ImageLabel") or Object:IsA("ImageButton") then
+                    if Object.ImageColor3 == OldAccent or Object.ImageColor3 == OldDark then
+                        Object.ImageColor3 = Color
+                    end
+                end
+            end
+            if Object:IsA("UIStroke") and (Object.Color == OldAccent or Object.Color == OldDark) then
+                Object.Color = Color
+            end
+            if Object:IsA("ScrollingFrame") and Object.ScrollBarImageColor3 == OldAccent then
+                Object.ScrollBarImageColor3 = Color
+            end
+        end)
+
+        for _, Child in ipairs(Object:GetChildren()) do
+            Recolor(Child)
+        end
     end
 
-    for _, Panel in pairs(CategoryPanels) do
-        local S = Panel:FindFirstChildOfClass("UIStroke")
-        if S then S.Color = Color end
-    end
-
-    if SideMenuStroke then SideMenuStroke.Color = Color end
-    for _, Button in pairs(MenuButtons) do
-        local Image = Button:FindFirstChildOfClass("ImageLabel")
-        local Fallback = Button:FindFirstChildWhichIsA("TextLabel")
-        if Image then Image.ImageColor3 = Color end
-        if Fallback then Fallback.TextColor3 = Color end
-    end
+    Recolor(Main)
+    Recolor(MobileToggle)
 end
 
 for Name, Color in pairs(ThemeColors) do
@@ -850,31 +908,50 @@ Search:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
-local Dragging = false
-local DragStart
-local StartPosition
+--==================================================
+-- MANUAL CATEGORY LAYOUT / SAFE AREA
+--==================================================
 
-Brand.InputBegan:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-        Dragging = true
-        DragStart = Input.Position
-        StartPosition = Main.Position
-    end
-end)
+local function UpdateSafeArea()
+    local TopLeft, BottomRight = GuiService:GetGuiInset()
+    local Top = TopLeft.Y
+    local Bottom = BottomRight.Y
 
-UserInputService.InputEnded:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-        Dragging = false
-    end
-end)
+    Main.Position = UDim2.fromOffset(15, 15 + Top)
+    Main.Size = UDim2.new(1, -30, 1, -30 - Top - Bottom)
 
-UserInputService.InputChanged:Connect(function(Input)
-    if not Dragging then return end
-    if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
-        local Delta = Input.Position - DragStart
-        Main.Position = UDim2.new(StartPosition.X.Scale, StartPosition.X.Offset + Delta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + Delta.Y)
+    if UserInputService.TouchEnabled then
+        MobileToggle.Position = UDim2.new(1, -16, 0, 16 + Top)
     end
-end)
+end
+
+local function LayoutCategories()
+    local Width = Content.AbsoluteSize.X
+    if Width <= 0 then return end
+
+    local Gap = 7
+    local Columns = 5
+    local CellWidth = math.max(1, (Width - Gap * (Columns - 1)) / Columns)
+    local CellHeight = 115
+
+    for Index, Name in ipairs(Categories) do
+        local Panel = CategoryPanels[Name]
+        if Panel and not CategoryMoved[Name] then
+            local Column = (Index - 1) % Columns
+            local Row = math.floor((Index - 1) / Columns)
+            Panel.Size = UDim2.fromOffset(CellWidth, CellHeight)
+            Panel.Position = UDim2.fromOffset(
+                Column * (CellWidth + Gap),
+                Row * (CellHeight + Gap)
+            )
+        end
+    end
+
+    local Rows = math.ceil(#Categories / Columns)
+    Content.CanvasSize = UDim2.fromOffset(0, math.max(0, Rows * (CellHeight + Gap) - Gap))
+end
+
+Content:GetPropertyChangedSignal("AbsoluteSize"):Connect(LayoutCategories)
 
 --==================================================
 -- RESPONSIVE - FIVE COLUMNS ALWAYS
@@ -887,7 +964,6 @@ local function UpdateLayout()
     if not Camera then return end
 
     Grid.FillDirectionMaxCells = 5
-    Grid.CellSize = UDim2.new(0.2, -7, 0, 115)
 
     local Width = Camera.ViewportSize.X
     if Width < 500 then
@@ -904,11 +980,12 @@ local function UpdateLayout()
 
     if Width < 800 then
         MobileToggle.Size = UDim2.fromOffset(48, 48)
-        MobileToggle.Position = UDim2.new(1, -12, 0, 12)
     else
         MobileToggle.Size = UDim2.fromOffset(52, 52)
-        MobileToggle.Position = UDim2.new(1, -16, 0, 16)
     end
+
+    UpdateSafeArea()
+    LayoutCategories()
 end
 
 UpdateLayout()
