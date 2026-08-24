@@ -3,6 +3,7 @@ local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
 local Player = Players.LocalPlayer
 if not Player then return end
@@ -39,6 +40,18 @@ Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Gui.Parent = PlayerGui
+
+-- BACKGROUND BLUR
+local BackgroundBlur = Instance.new("BlurEffect")
+BackgroundBlur.Name = "LanternVapeBlur"
+BackgroundBlur.Size = 0
+BackgroundBlur.Enabled = true
+BackgroundBlur.Parent = Lighting
+
+local function SetBackgroundBlur(enabled)
+    local target = enabled and 14 or 0
+    TweenService:Create(BackgroundBlur, TweenInfo.new(.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = target}):Play()
+end
 
 local function Corner(o,r)
     local c = Instance.new("UICorner")
@@ -195,12 +208,13 @@ Corner(Search,5)
 Stroke(Search,Config.Orange,.8,1)
 
 local SP = Instance.new("UIPadding")
-SP.PaddingLeft = UDim.new(0,38)
+SP.PaddingLeft = UDim.new(0,30)
 Search.TextXAlignment = Enum.TextXAlignment.Left
 SP.Parent = Search
 
-local SearchIcon = Image(Search,Config.SearchIcon,UDim2.fromOffset(17,17),UDim2.fromOffset(10,8),5)
+local SearchIcon = Image(Search,Config.SearchIcon,UDim2.fromOffset(14,14),UDim2.fromOffset(8,10),5)
 SearchIcon.ImageColor3 = Config.Gray
+SearchIcon.ZIndex = 6
 
 -- NO OLD TOP-RIGHT CLOSE BUTTON
 
@@ -794,7 +808,7 @@ local function MakeSwitch(parent,text,state,callback)
     end)
 end
 
-local SettingsState = {ShowSearch=true,ShowFooter=true,CompactMobile=true}
+local SettingsState = {ShowSearch=true,ShowFooter=true,CompactMobile=true,HideGUI=false,BlurBackground=true}
 
 -- SETTINGS SIDEBAR
 local function BuildSettingsSidebar()
@@ -805,7 +819,17 @@ local function BuildSettingsSidebar()
         Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="GUI"; UtilitySubtitle.Text="Interface options"; ClearUtility()
         MakeSwitch(UtilityBody,"Show Search",SettingsState.ShowSearch,function(v) SettingsState.ShowSearch=v; Search.Visible=v end)
         MakeSwitch(UtilityBody,"Show Footer",SettingsState.ShowFooter,function(v) SettingsState.ShowFooter=v; Footer.Visible=v end)
-        MakeSwitch(UtilityBody,"Compact Mobile",SettingsState.CompactMobile,function(v) SettingsState.CompactMobile=v end)
+        MakeSwitch(UtilityBody,"Compact Mobile",SettingsState.CompactMobile,function(v) SettingsState.CompactMobile=v; Layout() end)
+        MakeSwitch(UtilityBody,"Hide GUI",SettingsState.HideGUI,function(v)
+            SettingsState.HideGUI=v
+            Main.Visible=not v
+            Utility.Visible=false
+            if v then SetBackgroundBlur(false) end
+        end)
+        MakeSwitch(UtilityBody,"Blur Background",SettingsState.BlurBackground,function(v)
+            SettingsState.BlurBackground=v
+            if not Main.Visible then SetBackgroundBlur(false) else SetBackgroundBlur(v) end
+        end)
     end)
     local b2 = MakeMenuButton("Modules",Config.ProfilesIcon,2,function()
         Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Modules"; UtilitySubtitle.Text="Choose visible categories"; ClearUtility()
@@ -954,7 +978,14 @@ Mobile.Image=Config.Icon
 Mobile.ImageColor3=Config.Orange
 Mobile.ScaleType=Enum.ScaleType.Fit
 
-local function toggleMain() Main.Visible=not Main.Visible end
+local function toggleMain()
+    Main.Visible=not Main.Visible
+    if Main.Visible then
+        if SettingsState.BlurBackground and not SettingsState.HideGUI then SetBackgroundBlur(true) end
+    else
+        SetBackgroundBlur(false)
+    end
+end
 Mobile.MouseButton1Click:Connect(toggleMain)
 
 UIS.InputBegan:Connect(function(i,p)
@@ -987,8 +1018,9 @@ local Finished=false
 local function FinishLoading()
     if Finished then return end
     Finished=true
-    Main.Visible=true
+    Main.Visible=not SettingsState.HideGUI
     Mobile.Visible=UIS.TouchEnabled
+    if Main.Visible and SettingsState.BlurBackground then SetBackgroundBlur(true) end
     Tween(Loading,.35,{BackgroundTransparency=1})
     Tween(Tint,.35,{BackgroundTransparency=1})
     Tween(LoadingTitle,.35,{TextTransparency=1})
