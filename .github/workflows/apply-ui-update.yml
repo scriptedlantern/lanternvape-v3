@@ -29,8 +29,8 @@ jobs:
               'LOADING LANTERNVAPE..',
               'local SpeedEnabled = false',
               'local Categories = {"Combat","Blatant","External","Rendering","Extra"}',
-              'MobileToggle',
-              'LeftShift',
+              'local Mobile = Instance.new("ImageButton")',
+              'KeyCode == Enum.KeyCode.LeftShift',
           ]
           missing = [x for x in required if x not in s]
           if missing:
