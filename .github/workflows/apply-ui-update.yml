@@ -55,7 +55,7 @@ jobs:
           end
 
           local MobileIconAsset = LoadRemoteAsset(
-              "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/%20mobile_icon.png",
+              "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/mobile_icon.png",
               "mobile_icon.png"
           )
           local LanternVapeTextAsset = LoadRemoteAsset(
@@ -120,24 +120,23 @@ jobs:
 
               s += "\\n\\n" + marker + "\\n"
 
-          # SideTitle is now an ImageLabel. Never assign .Text to it.
+          s = s.replace('https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/%20mobile_icon.png', 'https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/mobile_icon.png')
           s = s.replace('SideTitle.Text = "Settings"', 'SideTitle.Image = LanternVapeTextAsset or ""')
           s = s.replace('SideTitle.Text = "Themes"', 'SideTitle.Image = LanternVapeTextAsset or ""')
           s = s.replace('SideTitle.Text = "LanternVape"', 'SideTitle.Image = LanternVapeTextAsset or ""')
 
           p.write_text(s, encoding="utf-8")
-          if s != original:
-              print("Patched main.lua", len(s), "bytes")
-          else:
-              print("main.lua already up to date")
+          print("main.lua checked", len(s), "bytes")
           PY
 
       - name: Validate
         run: |
           set -euo pipefail
           test -f "assets/lanternvape_text.png"
-          test -f "assets/ mobile_icon.png"
+          test -f "assets/mobile_icon.png"
           grep -q 'LanternVape asset-backed UI update v2.12' main.lua
+          grep -q 'assets/mobile_icon.png' main.lua
+          grep -q 'assets/lanternvape_text.png' main.lua
           grep -q 'local MobileIconAsset = LoadRemoteAsset' main.lua
           grep -q 'local LanternVapeTextAsset = LoadRemoteAsset' main.lua
           grep -q 'local SideTitle = Instance.new("ImageLabel")' main.lua
@@ -157,5 +156,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add main.lua
-          git commit -m "Fix LanternVape image sidebar title"
+          git commit -m "Use clean LanternVape mobile icon path"
           git push
