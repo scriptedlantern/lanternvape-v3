@@ -1,4 +1,4 @@
-name: Validate LanternVape UI
+name: Apply LanternVape UI Update
 
 on:
   push:
@@ -6,33 +6,77 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  validate:
+  apply:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Validate main.lua
+      - name: Apply v2.10 UI patch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f main.lua
+          test -f ui_update_v210.lua
+
+          if grep -q "LanternVape UI update v2.10" main.lua; then
+            echo "v2.10 patch already present; nothing to apply."
+            exit 0
+          fi
+
+          printf '\n\n-- LanternVape UI update v2.10\n' >> main.lua
+          cat ui_update_v210.lua >> main.lua
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("main.lua")
+          s = p.read_text(encoding="utf-8")
+          s = s.replace('Version = "2.09"', 'Version = "2.10"', 1)
+          s = s.replace('Icon = "rbxassetid://0"', 'Icon = "rbxassetid://6031154871"', 1)
+          s = s.replace('CloseIcon = "rbxassetid://0"', 'CloseIcon = "rbxassetid://6031075930"', 1)
+          p.write_text(s, encoding="utf-8")
+          print(f"Updated main.lua: {len(s)} bytes")
+          PY
+
+      - name: Validate updated main.lua
         shell: python
         run: |
           from pathlib import Path
-          p = Path("main.lua")
-          if not p.is_file():
-              raise SystemExit("main.lua is missing")
-          s = p.read_text(encoding="utf-8")
+          s = Path("main.lua").read_text(encoding="utf-8")
           required = [
               'Name = "LanternVape"',
-              'Version = "2.09"',
+              'Version = "2.10"',
+              'Icon = "rbxassetid://6031154871"',
               'LOADING LANTERNVAPE..',
               'local SpeedEnabled = false',
               'local Categories = {"Combat","Blatant","External","Rendering","Extra"}',
               'local Mobile = Instance.new("ImageButton")',
               'KeyCode == Enum.KeyCode.LeftShift',
+              'LanternVape UI update v2.10',
+              'SearchIcon',
+              'V210SidebarView',
           ]
           missing = [x for x in required if x not in s]
           if missing:
               raise SystemExit("main.lua validation failed; missing: " + ", ".join(missing))
           print(f"Validated main.lua ({len(s)} bytes)")
+
+      - name: Commit applied update
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- main.lua; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add main.lua
+          git commit -m "Apply LanternVape v2.10 UI update"
+          git push
