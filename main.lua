@@ -104,9 +104,9 @@ local function NewPage(name,titleText,subtitleText,scale)
  Pages[name]=p return p
 end
 
-local SettingsPage=NewPage("SettingsPage","Settings","Choose which categories are visible",.14)
-local ThemesPage=NewPage("ThemesPage","Themes","Choose an accent color",.20)
-local ProfilesPage=NewPage("ProfilesPage","Profiles","Manage your saved profiles",.22)
+local SettingsPage=NewPage("SettingsPage","Settings","Choose which categories are visible",.30)
+local ThemesPage=NewPage("ThemesPage","Themes","Choose an accent color",.34)
+local ProfilesPage=NewPage("ProfilesPage","Profiles","Manage your saved profiles",.38)
 
 local function MakeToggle(parent,text,order,state,callback)
  local b=Instance.new("TextButton") b.Size=UDim2.new(1,-24,0,36) b.Position=UDim2.fromOffset(12,0) b.BackgroundColor3=Config.Darker b.BorderSizePixel=0 b.Text="" b.AutoButtonColor=false b.LayoutOrder=order b.ZIndex=43 b.Parent=parent Corner(b,5)
