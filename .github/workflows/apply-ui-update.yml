@@ -2,7 +2,8 @@ name: Apply LanternVape UI Update
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -17,9 +18,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply asset-backed UI update
-        shell: python
+      - name: Patch main.lua
         run: |
+          set -euo pipefail
+          python3 - <<'PY'
           from pathlib import Path
 
           p = Path("main.lua")
@@ -28,123 +30,116 @@ jobs:
 
           if marker not in s:
               anchor = 'local function ButtonIcon(parent,asset,size,pos,z)\n'
-              helper = r'''local function LoadRemoteAsset(url,name)
-    local getter = getcustomasset or getsynasset
-    if type(getter) ~= "function" or type(writefile) ~= "function" then
-        return nil
-    end
+              helper = '''local function LoadRemoteAsset(url,name)
+              local getter = getcustomasset or getsynasset
+              if type(getter) ~= "function" or type(writefile) ~= "function" then
+                  return nil
+              end
+              local okData, data = pcall(function()
+                  return game:HttpGet(url)
+              end)
+              if not okData or type(data) ~= "string" or data == "" then
+                  return nil
+              end
+              local fileName = "LanternVape_"..name
+              pcall(function()
+                  if type(isfile) ~= "function" or not isfile(fileName) then
+                      writefile(fileName, data)
+                  end
+              end)
+              local okAsset, asset = pcall(function()
+                  return getter(fileName)
+              end)
+              return okAsset and asset or nil
+          end
 
-    local okData, data = pcall(function()
-        return game:HttpGet(url)
-    end)
-    if not okData or type(data) ~= "string" or data == "" then
-        return nil
-    end
+          local MobileIconAsset = LoadRemoteAsset(
+              "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/%20mobile_icon.png",
+              "mobile_icon.png"
+          )
+          local LanternVapeTextAsset = LoadRemoteAsset(
+              "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/lanternvape_text.png",
+              "lanternvape_text.png"
+          )
 
-    local fileName = "LanternVape_"..name
-    pcall(function()
-        if type(isfile) ~= "function" or not isfile(fileName) then
-            writefile(fileName, data)
-        end
-    end)
-
-    local okAsset, asset = pcall(function()
-        return getter(fileName)
-    end)
-    return okAsset and asset or nil
-end
-
-local MobileIconAsset = LoadRemoteAsset(
-    "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/%20mobile_icon.png",
-    "mobile_icon.png"
-)
-local LanternVapeTextAsset = LoadRemoteAsset(
-    "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/lanternvape_text.png",
-    "lanternvape_text.png"
-)
-
-'''
+          '''
               if anchor not in s:
-                  raise SystemExit("Could not find asset helper insertion point")
+                  raise SystemExit("Missing ButtonIcon anchor")
               s = s.replace(anchor, helper + anchor, 1)
 
               old_title = '''local SideTitle = Instance.new("TextLabel")
-SideTitle.Size = UDim2.new(1,-20,0,26)
-SideTitle.Position = UDim2.fromOffset(14,8)
-SideTitle.BackgroundTransparency = 1
-SideTitle.Text = "LanternVape"
-SideTitle.TextColor3 = Config.White
-SideTitle.TextSize = 17
-SideTitle.Font = Enum.Font.GothamBold
-SideTitle.TextXAlignment = Enum.TextXAlignment.Left
-SideTitle.ZIndex = 22
-SideTitle.Parent = SideHeader
+          SideTitle.Size = UDim2.new(1,-20,0,26)
+          SideTitle.Position = UDim2.fromOffset(14,8)
+          SideTitle.BackgroundTransparency = 1
+          SideTitle.Text = "LanternVape"
+          SideTitle.TextColor3 = Config.White
+          SideTitle.TextSize = 17
+          SideTitle.Font = Enum.Font.GothamBold
+          SideTitle.TextXAlignment = Enum.TextXAlignment.Left
+          SideTitle.ZIndex = 22
+          SideTitle.Parent = SideHeader
 
-local SideSubtitle = Instance.new("TextLabel")
-SideSubtitle.Size = UDim2.new(1,-20,0,18)
-SideSubtitle.Position = UDim2.fromOffset(14,33)
-SideSubtitle.BackgroundTransparency = 1
-SideSubtitle.Text = "Control Panel"
-SideSubtitle.TextColor3 = Config.Gray
-SideSubtitle.TextSize = 11
-SideSubtitle.Font = Enum.Font.Gotham
-SideSubtitle.ZIndex = 22
-SideSubtitle.Parent = SideHeader
-'''
+          local SideSubtitle = Instance.new("TextLabel")
+          SideSubtitle.Size = UDim2.new(1,-20,0,18)
+          SideSubtitle.Position = UDim2.fromOffset(14,33)
+          SideSubtitle.BackgroundTransparency = 1
+          SideSubtitle.Text = "Control Panel"
+          SideSubtitle.TextColor3 = Config.Gray
+          SideSubtitle.TextSize = 11
+          SideSubtitle.Font = Enum.Font.Gotham
+          SideSubtitle.ZIndex = 22
+          SideSubtitle.Parent = SideHeader
+          '''
               new_title = '''local SideTitle = Instance.new("ImageLabel")
-SideTitle.Name = "LanternVapeLogo"
-SideTitle.Size = UDim2.new(1,-20,0,32)
-SideTitle.Position = UDim2.fromOffset(10,7)
-SideTitle.BackgroundTransparency = 1
-SideTitle.Image = LanternVapeTextAsset or ""
-SideTitle.ImageColor3 = Color3.new(1,1,1)
-SideTitle.ScaleType = Enum.ScaleType.Fit
-SideTitle.ZIndex = 22
-SideTitle.Parent = SideHeader
-'''
+          SideTitle.Name = "LanternVapeLogo"
+          SideTitle.Size = UDim2.new(1,-20,0,32)
+          SideTitle.Position = UDim2.fromOffset(10,7)
+          SideTitle.BackgroundTransparency = 1
+          SideTitle.Image = LanternVapeTextAsset or ""
+          SideTitle.ImageColor3 = Color3.new(1,1,1)
+          SideTitle.ScaleType = Enum.ScaleType.Fit
+          SideTitle.ZIndex = 22
+          SideTitle.Parent = SideHeader
+          '''
               if old_title not in s:
-                  raise SystemExit("Could not find sidebar title block")
+                  raise SystemExit("Missing sidebar title block")
               s = s.replace(old_title, new_title, 1)
 
-              s = s.replace('    SideSubtitle.Text = "Configuration"\n', '')
-              s = s.replace('    SideSubtitle.Text = "Appearance"\n', '')
-              s = s.replace('    SideSubtitle.Text = "Control Panel"\n', '')
-              s = s.replace('Mobile.Image=Config.Icon\nMobile.ImageColor3=Config.Orange', 'Mobile.Image=MobileIconAsset or Config.Icon\nMobile.ImageColor3=Color3.new(1,1,1)')
+              for line in [
+                  '    SideSubtitle.Text = "Configuration"\n',
+                  '    SideSubtitle.Text = "Appearance"\n',
+                  '    SideSubtitle.Text = "Control Panel"\n',
+              ]:
+                  s = s.replace(line, "")
 
-              s += '\n\n' + marker + '\n'
+              s = s.replace(
+                  'Mobile.Image=Config.Icon\nMobile.ImageColor3=Config.Orange',
+                  'Mobile.Image=MobileIconAsset or Config.Icon\nMobile.ImageColor3=Color3.new(1,1,1)'
+              )
+
+              s += "\\n\\n" + marker + "\\n"
               p.write_text(s, encoding="utf-8")
-              print(f"Applied asset-backed UI update: {len(s)} bytes")
+              print("Patched main.lua", len(s), "bytes")
           else:
-              print("Asset-backed UI update already present; nothing to apply.")
+              print("v2.12 asset patch already present")
+          PY
 
-      - name: Validate update
-        shell: python
+      - name: Validate
         run: |
-          from pathlib import Path
-          s = Path("main.lua").read_text(encoding="utf-8")
-          required = [
-              'Version = "2.11"',
-              'local MobileIconAsset = LoadRemoteAsset(',
-              'local LanternVapeTextAsset = LoadRemoteAsset(',
-              'local SideTitle = Instance.new("ImageLabel")',
-              'SideTitle.Name = "LanternVapeLogo"',
-              'Mobile.Image=MobileIconAsset or Config.Icon',
-              'LanternVape asset-backed UI update v2.12',
-          ]
-          missing = [x for x in required if x not in s]
-          if missing:
-              raise SystemExit("main.lua validation failed; missing: " + ", ".join(missing))
-          for asset in ["assets/lanternvape_text.png", "assets/ mobile_icon.png"]:
-              if not Path(asset).is_file():
-                  raise SystemExit(f"Missing uploaded asset: {asset}")
-          print(f"Validated main.lua ({len(s)} bytes)")
+          set -euo pipefail
+          test -f "assets/lanternvape_text.png"
+          test -f "assets/ mobile_icon.png"
+          grep -q 'LanternVape asset-backed UI update v2.12' main.lua
+          grep -q 'local MobileIconAsset = LoadRemoteAsset' main.lua
+          grep -q 'local LanternVapeTextAsset = LoadRemoteAsset' main.lua
+          grep -q 'local SideTitle = Instance.new("ImageLabel")' main.lua
+          grep -q 'Mobile.Image=MobileIconAsset or Config.Icon' main.lua
 
-      - name: Commit applied update
-        shell: bash
+      - name: Commit main.lua
         run: |
           set -euo pipefail
           if git diff --quiet -- main.lua; then
-            echo "No main.lua changes to commit."
+            echo "main.lua already up to date"
             exit 0
           fi
           git config user.name "github-actions[bot]"
