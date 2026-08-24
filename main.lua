@@ -67,7 +67,6 @@ local function Valid(v)
     return typeof(v) == "string" and v ~= "" and v ~= "rbxassetid://0"
 end
 
--- LOADING - unchanged
 local Loading = Instance.new("Frame")
 Loading.Size = UDim2.fromScale(1,1)
 Loading.BackgroundColor3 = Config.Black
@@ -113,7 +112,6 @@ Bar.ZIndex = 1003
 Bar.Parent = BarBG
 Corner(Bar,10)
 
--- MAIN
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Size = UDim2.new(1,-30,1,-30)
@@ -205,7 +203,6 @@ else
     x.Parent = Close
 end
 
--- FOOTER
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1,-8,0,28)
 Footer.AnchorPoint = Vector2.new(.5,1)
@@ -242,7 +239,6 @@ Thanks.Font = Enum.Font.Gotham
 Thanks.Parent = Footer
 Stroke(Thanks,Color3.new(0,0,0),0,1.2)
 
--- SIDEBAR
 local SideMenu = Instance.new("Frame")
 SideMenu.Name = "SideMenu"
 SideMenu.Size = UDim2.fromOffset(235,0)
@@ -381,7 +377,6 @@ for i,d in ipairs(Items) do
     end)
 end
 
--- CATEGORY PANELS
 local Content = Instance.new("ScrollingFrame")
 Content.Name = "Categories"
 Content.Position = UDim2.fromOffset(252,58)
@@ -500,7 +495,6 @@ local function LayoutCategories()
 end
 Content:GetPropertyChangedSignal("AbsoluteSize"):Connect(LayoutCategories)
 
--- SPEED MODULE
 local BlatantModules = Panels.Blatant:FindFirstChild("Modules")
 local SpeedEnabled = false
 local SpeedValue = 16
@@ -673,7 +667,6 @@ Player.CharacterAdded:Connect(function()
     ApplySpeed()
 end)
 
--- PAGES
 local PageHolder = Instance.new("Frame")
 PageHolder.Position = Content.Position
 PageHolder.Size = Content.Size
@@ -860,7 +853,6 @@ for n,c in pairs(Themes) do
     end)
 end
 
--- PROFILES
 local ProfileSearch = Instance.new("TextBox")
 ProfileSearch.Size = UDim2.new(1,-18,0,22)
 ProfileSearch.Position = UDim2.fromOffset(9,47)
@@ -956,7 +948,6 @@ AddProfile.MouseButton1Click:Connect(function()
     RenderProfiles()
 end)
 
--- PAGE NAVIGATION
 local function ShowCategories()
     Content.Visible = true
     PageHolder.Visible = false
@@ -986,7 +977,6 @@ Search:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- MOBILE / PC TOGGLE
 local Mobile = Instance.new("ImageButton")
 Mobile.Name = "MobileToggle"
 Mobile.Size = UDim2.fromOffset(40,40)
@@ -1027,7 +1017,6 @@ UIS.InputBegan:Connect(function(i,p)
     end
 end)
 
--- RESPONSIVE
 local Camera = workspace.CurrentCamera
 local function Layout()
     Camera = workspace.CurrentCamera or Camera
@@ -1047,7 +1036,6 @@ end
 Layout()
 if Camera then Camera:GetPropertyChangedSignal("ViewportSize"):Connect(Layout) end
 
--- FINISH LOADING
 local Finished = false
 local function FinishLoading()
     if Finished then return end
