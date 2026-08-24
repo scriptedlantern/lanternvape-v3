@@ -113,7 +113,7 @@ local function LoadRemoteAsset(url,name)
 end
 
 local MobileIconAsset = LoadRemoteAsset(
-    "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/%20mobile_icon.png",
+    "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/mobile_icon.png",
     "mobile_icon.png"
 )
 local LanternVapeTextAsset = LoadRemoteAsset(
