@@ -98,70 +98,79 @@ Content:GetPropertyChangedSignal("AbsoluteSize"):Connect(LayoutCategories)
 local PageHolder=Instance.new("Frame") PageHolder.Position=Content.Position PageHolder.Size=Content.Size PageHolder.BackgroundTransparency=1 PageHolder.Visible=false PageHolder.ZIndex=40 PageHolder.Parent=Main
 local Pages={}
 local function NewPage(name,titleText,subtitleText,scale)
- local p=Instance.new("Frame") p.Name=name p.Size=UDim2.new(1-scale,0,1-scale,0) p.AnchorPoint=Vector2.new(.5,.5) p.Position=UDim2.fromScale(.5,.5) p.BackgroundColor3=Config.Black p.BackgroundTransparency=.02 p.BorderSizePixel=0 p.Visible=false p.ZIndex=41 p.Parent=PageHolder Corner(p,10) Stroke(p,Config.Orange,.45,1)
- local title=Instance.new("TextLabel") title.Size=UDim2.new(1,-32,0,30) title.Position=UDim2.fromOffset(16,12) title.BackgroundTransparency=1 title.Text=titleText title.TextColor3=Config.White title.TextSize=18 title.Font=Enum.Font.GothamBold title.TextXAlignment=Enum.TextXAlignment.Left title.ZIndex=42 title.Parent=p
- local sub=Instance.new("TextLabel") sub.Size=UDim2.new(1,-32,0,20) sub.Position=UDim2.fromOffset(16,40) sub.BackgroundTransparency=1 sub.Text=subtitleText sub.TextColor3=Config.Gray sub.TextSize=11 sub.Font=Enum.Font.Gotham sub.TextXAlignment=Enum.TextXAlignment.Left sub.ZIndex=42 sub.Parent=p
+ local p=Instance.new("Frame")
+ p.Name=name
+ p.Size=UDim2.new(1-scale,0,1-scale,0)
+ p.AnchorPoint=Vector2.new(.5,.5)
+ p.Position=UDim2.fromScale(.5,.5)
+ p.BackgroundColor3=Config.Black
+ p.BackgroundTransparency=.02
+ p.BorderSizePixel=0
+ p.Visible=false
+ p.ZIndex=41
+ p.Parent=PageHolder
+ Corner(p,8)
+ Stroke(p,Config.Orange,.45,1)
+ local title=Instance.new("TextLabel") title.Size=UDim2.new(1,-24,0,25) title.Position=UDim2.fromOffset(12,8) title.BackgroundTransparency=1 title.Text=titleText title.TextColor3=Config.White title.TextSize=15 title.Font=Enum.Font.GothamBold title.TextXAlignment=Enum.TextXAlignment.Left title.ZIndex=42 title.Parent=p
+ local sub=Instance.new("TextLabel") sub.Size=UDim2.new(1,-24,0,16) sub.Position=UDim2.fromOffset(12,31) sub.BackgroundTransparency=1 sub.Text=subtitleText sub.TextColor3=Config.Gray sub.TextSize=9 sub.Font=Enum.Font.Gotham sub.TextXAlignment=Enum.TextXAlignment.Left sub.ZIndex=42 sub.Parent=p
  Pages[name]=p return p
 end
 
--- Smaller, compact page sizes: Settings 72%, Themes 70%, Profiles 68% of the available content area.
-local SettingsPage=NewPage("SettingsPage","Settings","Choose which categories are visible",.28)
-local ThemesPage=NewPage("ThemesPage","Themes","Choose an accent color",.30)
-local ProfilesPage=NewPage("ProfilesPage","Profiles","Manage your saved profiles",.32)
+-- Small, thin page cards: Profile is intentionally the smallest.
+local SettingsPage=NewPage("SettingsPage","Settings","Choose which categories are visible",.72)
+local ThemesPage=NewPage("ThemesPage","Themes","Choose an accent color",.70)
+local ProfilesPage=NewPage("ProfilesPage","Profiles","Manage your saved profiles",.82)
 
 local function MakeToggle(parent,text,order,state,callback)
- local b=Instance.new("TextButton") b.Size=UDim2.new(1,-24,0,36) b.Position=UDim2.fromOffset(12,0) b.BackgroundColor3=Config.Darker b.BorderSizePixel=0 b.Text="" b.AutoButtonColor=false b.LayoutOrder=order b.ZIndex=43 b.Parent=parent Corner(b,5)
- local l=Instance.new("TextLabel") l.Size=UDim2.new(1,-65,1,0) l.Position=UDim2.fromOffset(12,0) l.BackgroundTransparency=1 l.Text=text l.TextColor3=Config.White l.TextSize=12 l.Font=Enum.Font.GothamSemibold l.TextXAlignment=Enum.TextXAlignment.Left l.ZIndex=44 l.Parent=b
- local sw=Instance.new("Frame") sw.Size=UDim2.fromOffset(34,18) sw.Position=UDim2.new(1,-47,.5,-9) sw.BackgroundColor3=Config.Darker sw.ZIndex=44 sw.Parent=b Corner(sw,20)
- local k=Instance.new("Frame") k.Size=UDim2.fromOffset(14,14) k.BackgroundColor3=Config.White k.ZIndex=45 k.Parent=sw Corner(k,20)
- local function render()sw.BackgroundColor3=state and Config.Orange or Config.Darker k.Position=state and UDim2.fromOffset(18,2) or UDim2.fromOffset(2,2)end render()
+ local b=Instance.new("TextButton") b.Size=UDim2.new(1,-18,0,28) b.Position=UDim2.fromOffset(9,0) b.BackgroundColor3=Config.Darker b.BorderSizePixel=0 b.Text="" b.AutoButtonColor=false b.LayoutOrder=order b.ZIndex=43 b.Parent=parent Corner(b,5)
+ local l=Instance.new("TextLabel") l.Size=UDim2.new(1,-50,1,0) l.Position=UDim2.fromOffset(9,0) l.BackgroundTransparency=1 l.Text=text l.TextColor3=Config.White l.TextSize=10 l.Font=Enum.Font.GothamSemibold l.TextXAlignment=Enum.TextXAlignment.Left l.ZIndex=44 l.Parent=b
+ local sw=Instance.new("Frame") sw.Size=UDim2.fromOffset(28,15) sw.Position=UDim2.new(1,-37,.5,-7) sw.BackgroundColor3=Config.Darker sw.ZIndex=44 sw.Parent=b Corner(sw,20)
+ local k=Instance.new("Frame") k.Size=UDim2.fromOffset(11,11) k.BackgroundColor3=Config.White k.ZIndex=45 k.Parent=sw Corner(k,20)
+ local function render()sw.BackgroundColor3=state and Config.Orange or Config.Darker k.Position=state and UDim2.fromOffset(15,2) or UDim2.fromOffset(2,2)end render()
  b.MouseButton1Click:Connect(function()state=not state render()callback(state)end)
 end
-local SL=Instance.new("UIListLayout") SL.Padding=UDim.new(0,5) SL.SortOrder=Enum.SortOrder.LayoutOrder SL.Parent=SettingsPage
-local SPad=Instance.new("UIPadding") SPad.PaddingTop=UDim.new(0,72) SPad.PaddingLeft=UDim.new(0,12) SPad.PaddingRight=UDim.new(0,12) SPad.Parent=SettingsPage
+local SL=Instance.new("UIListLayout") SL.Padding=UDim.new(0,4) SL.SortOrder=Enum.SortOrder.LayoutOrder SL.Parent=SettingsPage
+local SPad=Instance.new("UIPadding") SPad.PaddingTop=UDim.new(0,52) SPad.PaddingLeft=UDim.new(0,9) SPad.PaddingRight=UDim.new(0,9) SPad.Parent=SettingsPage
 for i,n in ipairs(Categories)do MakeToggle(SettingsPage,"Show "..n,i,true,function(v)Enabled[n]=v Panels[n].Visible=v end)end
 
 local Themes={Orange=Color3.fromRGB(220,115,35),Purple=Color3.fromRGB(150,85,220),Blue=Color3.fromRGB(70,135,235),Green=Color3.fromRGB(70,190,110),Red=Color3.fromRGB(220,65,65),Pink=Color3.fromRGB(220,85,155)}
-local TG=Instance.new("UIGridLayout") TG.CellSize=UDim2.fromOffset(105,38) TG.CellPadding=UDim2.fromOffset(7,7) TG.Parent=ThemesPage
-local TP=Instance.new("UIPadding") TP.PaddingTop=UDim.new(0,72) TP.PaddingLeft=UDim.new(0,12) TP.PaddingRight=UDim.new(0,12) TP.Parent=ThemesPage
+local TG=Instance.new("UIGridLayout") TG.CellSize=UDim2.fromOffset(82,28) TG.CellPadding=UDim2.fromOffset(5,5) TG.Parent=ThemesPage
+local TP=Instance.new("UIPadding") TP.PaddingTop=UDim.new(0,52) TP.PaddingLeft=UDim.new(0,9) TP.PaddingRight=UDim.new(0,9) TP.Parent=ThemesPage
 for n,c in pairs(Themes)do
- local b=Instance.new("TextButton") b.Name=n b.BackgroundColor3=Config.Darker b.BorderSizePixel=0 b.Text=n b.TextColor3=Config.White b.TextSize=12 b.Font=Enum.Font.GothamSemibold b.AutoButtonColor=false b.ZIndex=43 b.Parent=ThemesPage Corner(b,5)
- local d=Instance.new("Frame") d.Size=UDim2.fromOffset(10,10) d.Position=UDim2.fromOffset(9,14) d.BackgroundColor3=c d.BorderSizePixel=0 d.ZIndex=44 d.Parent=b Corner(d,20)
- b.TextXAlignment=Enum.TextXAlignment.Right local pp=Instance.new("UIPadding")pp.PaddingRight=UDim.new(0,9)pp.Parent=b
+ local b=Instance.new("TextButton") b.Name=n b.BackgroundColor3=Config.Darker b.BorderSizePixel=0 b.Text=n b.TextColor3=Config.White b.TextSize=9 b.Font=Enum.Font.GothamSemibold b.AutoButtonColor=false b.ZIndex=43 b.Parent=ThemesPage Corner(b,5)
+ local d=Instance.new("Frame") d.Size=UDim2.fromOffset(8,8) d.Position=UDim2.fromOffset(7,10) d.BackgroundColor3=c d.BorderSizePixel=0 d.ZIndex=44 d.Parent=b Corner(d,20)
+ b.TextXAlignment=Enum.TextXAlignment.Right local pp=Instance.new("UIPadding")pp.PaddingRight=UDim.new(0,7)pp.Parent=b
  b.MouseButton1Click:Connect(function()Config.Orange=c Config.OrangeDark=c:Lerp(Color3.new(0,0,0),.35)for _,o in ipairs(Gui:GetDescendants())do if o:IsA("UIStroke") and not(o.Color==Color3.new(0,0,0))then o.Color=c elseif o:IsA("ScrollingFrame")then o.ScrollBarImageColor3=c elseif o:IsA("Frame")and(o.Name=="BA"or o.Name=="SideAccent")then o.BackgroundColor3=c end end end)
 end
 
--- PROFILES: search + Default + name field + plus button
-local ProfileSearch=Instance.new("TextBox") ProfileSearch.Size=UDim2.new(1,-32,0,34) ProfileSearch.Position=UDim2.fromOffset(16,70) ProfileSearch.BackgroundColor3=Config.Darker ProfileSearch.BorderSizePixel=0 ProfileSearch.PlaceholderText="Search profiles..." ProfileSearch.PlaceholderColor3=Config.Gray ProfileSearch.Text="" ProfileSearch.TextColor3=Config.White ProfileSearch.TextSize=12 ProfileSearch.Font=Enum.Font.Gotham ProfileSearch.ClearTextOnFocus=false ProfileSearch.ZIndex=43 ProfileSearch.Parent=ProfilesPage Corner(ProfileSearch,6) Stroke(ProfileSearch,Config.Orange,.75,1)
-local NewProfileName=Instance.new("TextBox") NewProfileName.Size=UDim2.new(1,-76,0,34) NewProfileName.Position=UDim2.fromOffset(16,112) NewProfileName.BackgroundColor3=Config.Darker NewProfileName.BorderSizePixel=0 NewProfileName.PlaceholderText="New profile name..." NewProfileName.PlaceholderColor3=Config.Gray NewProfileName.Text="" NewProfileName.TextColor3=Config.White NewProfileName.TextSize=12 NewProfileName.Font=Enum.Font.Gotham NewProfileName.ClearTextOnFocus=false NewProfileName.ZIndex=43 NewProfileName.Parent=ProfilesPage Corner(NewProfileName,6)
-local AddProfile=Instance.new("TextButton") AddProfile.Size=UDim2.fromOffset(44,34) AddProfile.Position=UDim2.new(1,-60,0,112) AddProfile.BackgroundColor3=Config.Orange AddProfile.BorderSizePixel=0 AddProfile.Text="+" AddProfile.TextColor3=Color3.new(1,1,1) AddProfile.TextSize=22 AddProfile.Font=Enum.Font.GothamBold AddProfile.AutoButtonColor=false AddProfile.ZIndex=43 AddProfile.Parent=ProfilesPage Corner(AddProfile,6)
-local ProfileList=Instance.new("ScrollingFrame") ProfileList.Size=UDim2.new(1,-32,1,-162) ProfileList.Position=UDim2.fromOffset(16,154) ProfileList.BackgroundTransparency=1 ProfileList.BorderSizePixel=0 ProfileList.ScrollBarThickness=3 ProfileList.ScrollBarImageColor3=Config.Orange ProfileList.CanvasSize=UDim2.fromOffset(0,0) ProfileList.ZIndex=43 ProfileList.Parent=ProfilesPage
-local PL=Instance.new("UIListLayout") PL.Padding=UDim.new(0,6) PL.SortOrder=Enum.SortOrder.LayoutOrder PL.Parent=ProfileList
-local PP=Instance.new("UIPadding") PP.PaddingBottom=UDim.new(0,6) PP.Parent=ProfileList
+-- PROFILES: thin compact rectangle
+local ProfileSearch=Instance.new("TextBox") ProfileSearch.Size=UDim2.new(1,-24,0,25) ProfileSearch.Position=UDim2.fromOffset(12,52) ProfileSearch.BackgroundColor3=Config.Darker ProfileSearch.BorderSizePixel=0 ProfileSearch.PlaceholderText="Search profiles..." ProfileSearch.PlaceholderColor3=Config.Gray ProfileSearch.Text="" ProfileSearch.TextColor3=Config.White ProfileSearch.TextSize=9 ProfileSearch.Font=Enum.Font.Gotham ProfileSearch.ClearTextOnFocus=false ProfileSearch.ZIndex=43 ProfileSearch.Parent=ProfilesPage Corner(ProfileSearch,5) Stroke(ProfileSearch,Config.Orange,.75,1)
+local NewProfileName=Instance.new("TextBox") NewProfileName.Size=UDim2.new(1,-58,0,25) NewProfileName.Position=UDim2.fromOffset(12,83) NewProfileName.BackgroundColor3=Config.Darker NewProfileName.BorderSizePixel=0 NewProfileName.PlaceholderText="New profile name..." NewProfileName.PlaceholderColor3=Config.Gray NewProfileName.Text="" NewProfileName.TextColor3=Config.White NewProfileName.TextSize=9 NewProfileName.Font=Enum.Font.Gotham NewProfileName.ClearTextOnFocus=false NewProfileName.ZIndex=43 NewProfileName.Parent=ProfilesPage Corner(NewProfileName,5)
+local AddProfile=Instance.new("TextButton") AddProfile.Size=UDim2.fromOffset(30,25) AddProfile.Position=UDim2.new(1,-42,0,83) AddProfile.BackgroundColor3=Config.Orange AddProfile.BorderSizePixel=0 AddProfile.Text="+" AddProfile.TextColor3=Color3.new(1,1,1) AddProfile.TextSize=16 AddProfile.Font=Enum.Font.GothamBold AddProfile.AutoButtonColor=false AddProfile.ZIndex=43 AddProfile.Parent=ProfilesPage Corner(AddProfile,5)
+local ProfileList=Instance.new("ScrollingFrame") ProfileList.Size=UDim2.new(1,-24,1,-119) ProfileList.Position=UDim2.fromOffset(12,114) ProfileList.BackgroundTransparency=1 ProfileList.BorderSizePixel=0 ProfileList.ScrollBarThickness=2 ProfileList.ScrollBarImageColor3=Config.Orange ProfileList.CanvasSize=UDim2.fromOffset(0,0) ProfileList.ZIndex=43 ProfileList.Parent=ProfilesPage
+local PL=Instance.new("UIListLayout") PL.Padding=UDim.new(0,4) PL.SortOrder=Enum.SortOrder.LayoutOrder PL.Parent=ProfileList
+local PP=Instance.new("UIPadding") PP.PaddingBottom=UDim.new(0,4) PP.Parent=ProfileList
 local profileNames={"Default"}
 local function RenderProfiles()
  for _,child in ipairs(ProfileList:GetChildren())do if child:IsA("TextButton")then child:Destroy()end end
- local q=ProfileSearch.Text:lower()
- local shown=0
+ local q=ProfileSearch.Text:lower() local shown=0
  for _,name in ipairs(profileNames)do
   if q=="" or name:lower():find(q,1,true)then
    shown+=1
-   local b=Instance.new("TextButton") b.Name="Profile_"..name b.Size=UDim2.new(1,0,0,42) b.BackgroundColor3=Config.Darker b.BorderSizePixel=0 b.Text="" b.AutoButtonColor=false b.LayoutOrder=shown b.ZIndex=44 b.Parent=ProfileList Corner(b,6)
-   local n=Instance.new("TextLabel") n.Size=UDim2.new(1,-20,1,0) n.Position=UDim2.fromOffset(10,0) n.BackgroundTransparency=1 n.Text=name n.TextColor3=Config.White n.TextSize=13 n.Font=Enum.Font.GothamSemibold n.TextXAlignment=Enum.TextXAlignment.Left n.ZIndex=45 n.Parent=b
+   local b=Instance.new("TextButton") b.Name="Profile_"..name b.Size=UDim2.new(1,0,0,30) b.BackgroundColor3=Config.Darker b.BorderSizePixel=0 b.Text="" b.AutoButtonColor=false b.LayoutOrder=shown b.ZIndex=44 b.Parent=ProfileList Corner(b,5)
+   local n=Instance.new("TextLabel") n.Size=UDim2.new(1,-16,1,0) n.Position=UDim2.fromOffset(8,0) n.BackgroundTransparency=1 n.Text=name n.TextColor3=Config.White n.TextSize=10 n.Font=Enum.Font.GothamSemibold n.TextXAlignment=Enum.TextXAlignment.Left n.ZIndex=45 n.Parent=b
    b.MouseEnter:Connect(function()Tween(b,.12,{BackgroundColor3=Config.OrangeDark})end) b.MouseLeave:Connect(function()Tween(b,.12,{BackgroundColor3=Config.Darker})end)
   end
  end
- ProfileList.CanvasSize=UDim2.fromOffset(0,shown*48)
+ ProfileList.CanvasSize=UDim2.fromOffset(0,shown*34)
 end
 RenderProfiles()
 ProfileSearch:GetPropertyChangedSignal("Text"):Connect(RenderProfiles)
 AddProfile.MouseButton1Click:Connect(function()
  local name=NewProfileName.Text:gsub("^%s+",""):gsub("%s+$","")
- if name=="" then return end
+ if name==""then return end
  for _,existing in ipairs(profileNames)do if existing:lower()==name:lower()then NewProfileName.Text="" return end end
- table.insert(profileNames,name)
- NewProfileName.Text=""
- RenderProfiles()
+ table.insert(profileNames,name) NewProfileName.Text="" RenderProfiles()
 end)
 NewProfileName.FocusLost:Connect(function(enter)if enter then AddProfile:Activate()end end)
 
