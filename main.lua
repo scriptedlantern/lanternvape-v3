@@ -11,9 +11,9 @@ if not PlayerGui then return end
 
 local Config = {
     Name = "LanternVape",
-    Version = "2.10",
+    Version = "2.11",
     Icon = "rbxassetid://6031154871",
-    CloseIcon = "rbxassetid://6031075930",
+    SearchIcon = "rbxassetid://6031154871",
     SettingsIcon = "rbxassetid://6031280882",
     ProfilesIcon = "rbxassetid://6031075930",
     TargetsIcon = "rbxassetid://6031763426",
@@ -63,10 +63,35 @@ local function Tween(o,t,p)
     if ok and x then x:Play() end
 end
 
-local function Valid(v)
-    return typeof(v) == "string" and v ~= "" and v ~= "rbxassetid://0"
+local function Image(parent,asset,size,pos,z)
+    local i = Instance.new("ImageLabel")
+    i.Size = size
+    i.Position = pos
+    i.BackgroundTransparency = 1
+    i.Image = asset
+    i.ImageColor3 = Config.Orange
+    i.ScaleType = Enum.ScaleType.Fit
+    i.ZIndex = z or 1
+    i.Parent = parent
+    return i
 end
 
+local function ButtonIcon(parent,asset,size,pos,z)
+    local b = Instance.new("ImageButton")
+    b.Size = size
+    b.Position = pos
+    b.BackgroundTransparency = 1
+    b.BorderSizePixel = 0
+    b.AutoButtonColor = false
+    b.Image = asset
+    b.ImageColor3 = Config.Orange
+    b.ScaleType = Enum.ScaleType.Fit
+    b.ZIndex = z or 1
+    b.Parent = parent
+    return b
+end
+
+-- LOADING SCREEN
 local Loading = Instance.new("Frame")
 Loading.Size = UDim2.fromScale(1,1)
 Loading.BackgroundColor3 = Config.Black
@@ -112,6 +137,7 @@ Bar.ZIndex = 1003
 Bar.Parent = BarBG
 Corner(Bar,10)
 
+-- MAIN WINDOW
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Size = UDim2.new(1,-30,1,-30)
@@ -149,6 +175,7 @@ BA.BackgroundColor3 = Config.Orange
 BA.BorderSizePixel = 0
 BA.Parent = Brand
 
+-- SEARCH WITH REAL IMAGE ASSET
 local Search = Instance.new("TextBox")
 Search.Size = UDim2.fromOffset(230,34)
 Search.AnchorPoint = Vector2.new(.5,0)
@@ -169,40 +196,15 @@ Stroke(Search,Config.Orange,.8,1)
 
 local SP = Instance.new("UIPadding")
 SP.PaddingLeft = UDim.new(0,38)
+Search.TextXAlignment = Enum.TextXAlignment.Left
 SP.Parent = Search
 
-local SearchFallback = Instance.new("TextLabel")
-SearchFallback.Size = UDim2.fromOffset(20,20)
-SearchFallback.Position = UDim2.fromOffset(9,7)
-SearchFallback.BackgroundTransparency = 1
-SearchFallback.Text = "⌕"
-SearchFallback.TextColor3 = Config.Gray
-SearchFallback.TextSize = 18
-SearchFallback.Parent = Search
+local SearchIcon = Image(Search,Config.SearchIcon,UDim2.fromOffset(17,17),UDim2.fromOffset(10,8),5)
+SearchIcon.ImageColor3 = Config.Gray
 
-local Close = Instance.new("ImageButton")
-Close.Size = UDim2.fromOffset(42,42)
-Close.Position = UDim2.new(1,-46,0,4)
-Close.BackgroundColor3 = Config.Black
-Close.BackgroundTransparency = .05
-Close.BorderSizePixel = 0
-Close.AutoButtonColor = false
-Close.Parent = Main
-Corner(Close,5)
+-- NO OLD TOP-RIGHT CLOSE BUTTON
 
-if Valid(Config.CloseIcon) then
-    Close.Image = Config.CloseIcon
-else
-    local x = Instance.new("TextLabel")
-    x.Size = UDim2.fromScale(1,1)
-    x.BackgroundTransparency = 1
-    x.Text = "×"
-    x.TextColor3 = Config.White
-    x.TextSize = 25
-    x.Font = Enum.Font.Gotham
-    x.Parent = Close
-end
-
+-- FOOTER
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1,-8,0,28)
 Footer.AnchorPoint = Vector2.new(.5,1)
@@ -239,6 +241,7 @@ Thanks.Font = Enum.Font.Gotham
 Thanks.Parent = Footer
 Stroke(Thanks,Color3.new(0,0,0),0,1.2)
 
+-- SIDEBAR ROOT
 local SideMenu = Instance.new("Frame")
 SideMenu.Name = "SideMenu"
 SideMenu.Size = UDim2.fromOffset(235,0)
@@ -307,59 +310,48 @@ MP.PaddingRight = UDim.new(0,7)
 MP.Parent = Menu
 
 local Items = {
-    {"Settings",Config.SettingsIcon,"⚙"},
-    {"Profiles",Config.ProfilesIcon,"♙"},
-    {"Targets",Config.TargetsIcon,"◎"},
-    {"Themes",Config.ThemesIcon,"◆"},
-    {"Keybinds",Config.KeybindsIcon,"⌨"},
-    {"About",Config.AboutIcon,"?"}
+    {"Settings",Config.SettingsIcon},
+    {"Profiles",Config.ProfilesIcon},
+    {"Targets",Config.TargetsIcon},
+    {"Themes",Config.ThemesIcon},
+    {"Keybinds",Config.KeybindsIcon},
+    {"About",Config.AboutIcon}
 }
 
 local MenuButtons = {}
-for i,d in ipairs(Items) do
+local NormalMenuItems = {}
+
+local function ClearMenu()
+    for _,child in ipairs(Menu:GetChildren()) do
+        if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
+            child:Destroy()
+        end
+    end
+    MenuButtons = {}
+    NormalMenuItems = {}
+end
+
+local function MakeMenuButton(name,asset,order,callback)
     local B = Instance.new("TextButton")
-    B.Name = d[1]
+    B.Name = name
     B.Size = UDim2.new(1,0,0,40)
     B.BackgroundColor3 = Config.Darker
     B.BorderSizePixel = 0
     B.Text = ""
     B.AutoButtonColor = false
-    B.LayoutOrder = i
+    B.LayoutOrder = order
     B.ZIndex = 21
     B.Parent = Menu
     Corner(B,5)
 
-    local I = Instance.new("ImageLabel")
-    I.Size = UDim2.fromOffset(19,19)
-    I.Position = UDim2.fromOffset(11,10)
-    I.BackgroundTransparency = 1
+    local I = Image(B,asset,UDim2.fromOffset(19,19),UDim2.fromOffset(11,10),22)
     I.ImageColor3 = Config.Orange
-    I.ZIndex = 22
-    I.Parent = B
-
-    local F = Instance.new("TextLabel")
-    F.Size = UDim2.fromOffset(22,22)
-    F.Position = UDim2.fromOffset(10,9)
-    F.BackgroundTransparency = 1
-    F.Text = d[3]
-    F.TextColor3 = Config.Orange
-    F.TextSize = 16
-    F.Font = Enum.Font.GothamBold
-    F.ZIndex = 22
-    F.Parent = B
-
-    if Valid(d[2]) then
-        I.Image = d[2]
-        F.Visible = false
-    else
-        I.Visible = false
-    end
 
     local T = Instance.new("TextLabel")
     T.Size = UDim2.new(1,-55,1,0)
     T.Position = UDim2.fromOffset(45,0)
     T.BackgroundTransparency = 1
-    T.Text = d[1]
+    T.Text = name
     T.TextColor3 = Config.White
     T.TextSize = 13
     T.Font = Enum.Font.GothamSemibold
@@ -367,16 +359,17 @@ for i,d in ipairs(Items) do
     T.ZIndex = 22
     T.Parent = B
 
-    MenuButtons[d[1]] = B
-
     B.MouseEnter:Connect(function()
         Tween(B,.12,{BackgroundColor3=Config.OrangeDark})
     end)
     B.MouseLeave:Connect(function()
         Tween(B,.12,{BackgroundColor3=Config.Darker})
     end)
+    if callback then B.MouseButton1Click:Connect(callback) end
+    return B
 end
 
+-- CATEGORY CONTENT
 local Content = Instance.new("ScrollingFrame")
 Content.Name = "Categories"
 Content.Position = UDim2.fromOffset(252,58)
@@ -444,7 +437,6 @@ local function makePanel(name,index)
     local dragging = false
     local startPos
     local startInput
-
     H.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -453,7 +445,6 @@ local function makePanel(name,index)
             P.ZIndex = 50
         end
     end)
-
     UIS.InputChanged:Connect(function(input)
         if not dragging then return end
         if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
@@ -461,20 +452,16 @@ local function makePanel(name,index)
         P.Position = UDim2.fromOffset(startPos.X.Offset + delta.X,startPos.Y.Offset + delta.Y)
         Moved[name] = true
     end)
-
     UIS.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
             P.ZIndex = 5
         end
     end)
-
     return Modules
 end
 
-for i,n in ipairs(Categories) do
-    makePanel(n,i)
-end
+for i,n in ipairs(Categories) do makePanel(n,i) end
 
 local function LayoutCategories()
     local w = Content.AbsoluteSize.X
@@ -495,6 +482,7 @@ local function LayoutCategories()
 end
 Content:GetPropertyChangedSignal("AbsoluteSize"):Connect(LayoutCategories)
 
+-- SPEED MODULE
 local BlatantModules = Panels.Blatant:FindFirstChild("Modules")
 local SpeedEnabled = false
 local SpeedValue = 16
@@ -528,16 +516,25 @@ SpeedName.Font = Enum.Font.GothamSemibold
 SpeedName.TextXAlignment = Enum.TextXAlignment.Left
 SpeedName.Parent = SpeedButton
 
-local SpeedDots = Instance.new("TextButton")
+-- Proper three-dot UI, no unicode fallback
+local SpeedDots = Instance.new("ImageButton")
+SpeedDots.Name = "SpeedOptions"
 SpeedDots.Size = UDim2.fromOffset(36,34)
 SpeedDots.Position = UDim2.new(1,-36,0,0)
 SpeedDots.BackgroundTransparency = 1
-SpeedDots.Text = "⋮"
-SpeedDots.TextColor3 = Config.Gray
-SpeedDots.TextSize = 19
-SpeedDots.Font = Enum.Font.GothamBold
+SpeedDots.BorderSizePixel = 0
 SpeedDots.AutoButtonColor = false
 SpeedDots.Parent = SpeedRow
+for i=1,3 do
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.fromOffset(4,4)
+    dot.AnchorPoint = Vector2.new(.5,.5)
+    dot.Position = UDim2.new(.5,(i-2)*7,.5,0)
+    dot.BackgroundColor3 = Config.Gray
+    dot.BorderSizePixel = 0
+    dot.Parent = SpeedDots
+    Corner(dot,4)
+end
 
 local SpeedMenu = Instance.new("Frame")
 SpeedMenu.Size = UDim2.new(1,-10,0,72)
@@ -598,25 +595,16 @@ end
 local function ApplySpeed()
     local char = Player.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        if SpeedEnabled then
-            hum.WalkSpeed = SpeedValue
-        end
-    end
+    if hum and SpeedEnabled then hum.WalkSpeed = SpeedValue end
 end
 
 local function SetSpeedEnabled(v)
     SpeedEnabled = v
     SpeedRow.BackgroundColor3 = v and Config.OrangeDark or Config.Darker
-    if SpeedConnection then
-        SpeedConnection:Disconnect()
-        SpeedConnection = nil
-    end
+    if SpeedConnection then SpeedConnection:Disconnect(); SpeedConnection=nil end
     if v then
         ApplySpeed()
-        SpeedConnection = RunService.Heartbeat:Connect(function()
-            ApplySpeed()
-        end)
+        SpeedConnection = RunService.Heartbeat:Connect(ApplySpeed)
     else
         local char = Player.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -624,13 +612,8 @@ local function SetSpeedEnabled(v)
     end
 end
 
-SpeedButton.MouseButton1Click:Connect(function()
-    SetSpeedEnabled(not SpeedEnabled)
-end)
-
-SpeedDots.MouseButton1Click:Connect(function()
-    SpeedMenu.Visible = not SpeedMenu.Visible
-end)
+SpeedButton.MouseButton1Click:Connect(function() SetSpeedEnabled(not SpeedEnabled) end)
+SpeedDots.MouseButton1Click:Connect(function() SpeedMenu.Visible = not SpeedMenu.Visible end)
 
 local draggingSlider = false
 local function UpdateSlider(x)
@@ -641,415 +624,377 @@ local function UpdateSlider(x)
     SetSpeedValue(16 + alpha*10)
     if SpeedEnabled then ApplySpeed() end
 end
-
 SliderBG.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingSlider = true
+        draggingSlider=true
         UpdateSlider(input.Position.X)
     end
 end)
-
 UIS.InputChanged:Connect(function(input)
-    if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        UpdateSlider(input.Position.X)
-    end
+    if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then UpdateSlider(input.Position.X) end
 end)
-
 UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingSlider = false
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSlider=false end
 end)
-
 SetSpeedValue(16)
-Player.CharacterAdded:Connect(function()
-    task.wait(.25)
-    ApplySpeed()
-end)
+Player.CharacterAdded:Connect(function() task.wait(.25); ApplySpeed() end)
 
-local PageHolder = Instance.new("Frame")
-PageHolder.Position = Content.Position
-PageHolder.Size = Content.Size
-PageHolder.BackgroundTransparency = 1
-PageHolder.Visible = false
-PageHolder.ZIndex = 40
-PageHolder.Parent = Main
+-- UTILITY CONTENT AREA USED BY SETTINGS/THEMES
+local Utility = Instance.new("Frame")
+Utility.Name = "Utility"
+Utility.Position = UDim2.fromOffset(252,58)
+Utility.Size = UDim2.new(1,-256,1,-94)
+Utility.BackgroundColor3 = Config.Black
+Utility.BackgroundTransparency = .02
+Utility.BorderSizePixel = 0
+Utility.Visible = false
+Utility.ZIndex = 40
+Utility.Parent = Main
+Corner(Utility,8)
+Stroke(Utility,Config.Orange,.45,1)
 
-local Pages = {}
+local UtilityTitle = Instance.new("TextLabel")
+UtilityTitle.Size = UDim2.new(1,-60,0,28)
+UtilityTitle.Position = UDim2.fromOffset(14,10)
+UtilityTitle.BackgroundTransparency = 1
+UtilityTitle.TextColor3 = Config.White
+UtilityTitle.TextSize = 17
+UtilityTitle.Font = Enum.Font.GothamBold
+UtilityTitle.TextXAlignment = Enum.TextXAlignment.Left
+UtilityTitle.ZIndex = 41
+UtilityTitle.Parent = Utility
 
-local function NewPage(name,titleText,subtitleText,width,height)
-    local p = Instance.new("Frame")
-    p.Name = name
-    p.Size = UDim2.fromScale(width,height)
-    p.AnchorPoint = Vector2.new(.5,.5)
-    p.Position = UDim2.fromScale(.5,.5)
-    p.BackgroundColor3 = Config.Black
-    p.BackgroundTransparency = .02
-    p.BorderSizePixel = 0
-    p.Visible = false
-    p.ZIndex = 41
-    p.Parent = PageHolder
-    Corner(p,8)
-    Stroke(p,Config.Orange,.45,1)
+local UtilitySubtitle = Instance.new("TextLabel")
+UtilitySubtitle.Size = UDim2.new(1,-60,0,18)
+UtilitySubtitle.Position = UDim2.fromOffset(14,36)
+UtilitySubtitle.BackgroundTransparency = 1
+UtilitySubtitle.TextColor3 = Config.Gray
+UtilitySubtitle.TextSize = 10
+UtilitySubtitle.Font = Enum.Font.Gotham
+UtilitySubtitle.TextXAlignment = Enum.TextXAlignment.Left
+UtilitySubtitle.ZIndex = 41
+UtilitySubtitle.Parent = Utility
 
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1,-20,0,22)
-    title.Position = UDim2.fromOffset(10,7)
-    title.BackgroundTransparency = 1
-    title.Text = titleText
-    title.TextColor3 = Config.White
-    title.TextSize = 13
-    title.Font = Enum.Font.GothamBold
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.ZIndex = 42
-    title.Parent = p
+local UtilityBack = Instance.new("TextButton")
+UtilityBack.Size = UDim2.fromOffset(34,34)
+UtilityBack.Position = UDim2.new(1,-44,0,8)
+UtilityBack.BackgroundColor3 = Config.Orange
+UtilityBack.BorderSizePixel = 0
+UtilityBack.Text = "×"
+UtilityBack.TextColor3 = Color3.new(1,1,1)
+UtilityBack.TextSize = 23
+UtilityBack.Font = Enum.Font.GothamBold
+UtilityBack.AutoButtonColor = false
+UtilityBack.ZIndex = 45
+UtilityBack.Parent = Utility
+Corner(UtilityBack,7)
 
-    local sub = Instance.new("TextLabel")
-    sub.Size = UDim2.new(1,-20,0,15)
-    sub.Position = UDim2.fromOffset(10,27)
-    sub.BackgroundTransparency = 1
-    sub.Text = subtitleText
-    sub.TextColor3 = Config.Gray
-    sub.TextSize = 8
-    sub.Font = Enum.Font.Gotham
-    sub.TextXAlignment = Enum.TextXAlignment.Left
-    sub.ZIndex = 42
-    sub.Parent = p
+local UtilityBody = Instance.new("ScrollingFrame")
+UtilityBody.Size = UDim2.new(1,-20,1,-68)
+UtilityBody.Position = UDim2.fromOffset(10,62)
+UtilityBody.BackgroundTransparency = 1
+UtilityBody.BorderSizePixel = 0
+UtilityBody.ScrollBarThickness = 2
+UtilityBody.ScrollBarImageColor3 = Config.Orange
+UtilityBody.ZIndex = 41
+UtilityBody.Parent = Utility
 
-    Pages[name] = p
-    return p
+local BodyList = Instance.new("UIListLayout")
+BodyList.Padding = UDim.new(0,5)
+BodyList.Parent = UtilityBody
+
+local function ClearUtility()
+    for _,c in ipairs(UtilityBody:GetChildren()) do
+        if c ~= BodyList then c:Destroy() end
+    end
 end
 
-local SettingsPage = NewPage("SettingsPage","Settings","Choose which categories are visible",.32,.42)
-local ThemesPage = NewPage("ThemesPage","Themes","Choose an accent color",.32,.34)
-local ProfilesPage = NewPage("ProfilesPage","Profiles","Manage your saved profiles",.52,.34)
-
-local function MakeToggle(parent,text,order,state,callback)
+local function UtilityRow(text,sub,callback)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1,-14,0,24)
-    b.Position = UDim2.fromOffset(7,0)
+    b.Size = UDim2.new(1,-4,0,44)
     b.BackgroundColor3 = Config.Darker
     b.BorderSizePixel = 0
     b.Text = ""
     b.AutoButtonColor = false
-    b.LayoutOrder = order
-    b.ZIndex = 43
-    b.Parent = parent
-    Corner(b,5)
+    b.ZIndex = 42
+    b.Parent = UtilityBody
+    Corner(b,6)
+    local t = Instance.new("TextLabel")
+    t.Size = UDim2.new(1,-20,0,20)
+    t.Position = UDim2.fromOffset(10,5)
+    t.BackgroundTransparency = 1
+    t.Text = text
+    t.TextColor3 = Config.White
+    t.TextSize = 11
+    t.Font = Enum.Font.GothamSemibold
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.ZIndex = 43
+    t.Parent = b
+    if sub then
+        local s = Instance.new("TextLabel")
+        s.Size = UDim2.new(1,-20,0,15)
+        s.Position = UDim2.fromOffset(10,24)
+        s.BackgroundTransparency = 1
+        s.Text = sub
+        s.TextColor3 = Config.Gray
+        s.TextSize = 8
+        s.Font = Enum.Font.Gotham
+        s.TextXAlignment = Enum.TextXAlignment.Left
+        s.ZIndex = 43
+        s.Parent = b
+    end
+    if callback then b.MouseButton1Click:Connect(callback) end
+    return b
+end
 
+local function MakeSwitch(parent,text,state,callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,-4,0,38)
+    b.BackgroundColor3 = Config.Darker
+    b.BorderSizePixel = 0
+    b.Text = ""
+    b.AutoButtonColor = false
+    b.ZIndex = 42
+    b.Parent = parent
+    Corner(b,6)
     local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1,-45,1,0)
-    l.Position = UDim2.fromOffset(7,0)
+    l.Size = UDim2.new(1,-60,1,0)
+    l.Position = UDim2.fromOffset(10,0)
     l.BackgroundTransparency = 1
     l.Text = text
     l.TextColor3 = Config.White
-    l.TextSize = 9
+    l.TextSize = 10
     l.Font = Enum.Font.GothamSemibold
     l.TextXAlignment = Enum.TextXAlignment.Left
-    l.ZIndex = 44
+    l.ZIndex = 43
     l.Parent = b
-
     local sw = Instance.new("Frame")
-    sw.Size = UDim2.fromOffset(25,14)
-    sw.Position = UDim2.new(1,-32,.5,-7)
-    sw.ZIndex = 44
+    sw.Size = UDim2.fromOffset(28,16)
+    sw.Position = UDim2.new(1,-38,.5,-8)
+    sw.BorderSizePixel = 0
+    sw.ZIndex = 43
     sw.Parent = b
     Corner(sw,20)
-
-    local k = Instance.new("Frame")
-    k.Size = UDim2.fromOffset(10,10)
-    k.BackgroundColor3 = Config.White
-    k.ZIndex = 45
-    k.Parent = sw
-    Corner(k,20)
-
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.fromOffset(12,12)
+    knob.BackgroundColor3 = Config.White
+    knob.BorderSizePixel = 0
+    knob.ZIndex = 44
+    knob.Parent = sw
+    Corner(knob,20)
     local function render()
-        sw.BackgroundColor3 = state and Config.Orange or Config.Darker
-        k.Position = state and UDim2.fromOffset(13,2) or UDim2.fromOffset(2,2)
+        sw.BackgroundColor3 = state and Config.Orange or Config.Black
+        knob.Position = state and UDim2.fromOffset(14,2) or UDim2.fromOffset(2,2)
     end
     render()
-
     b.MouseButton1Click:Connect(function()
         state = not state
         render()
-        callback(state)
+        if callback then callback(state) end
     end)
 end
 
-local SL = Instance.new("UIListLayout")
-SL.Padding = UDim.new(0,3)
-SL.Parent = SettingsPage
-local SPad = Instance.new("UIPadding")
-SPad.PaddingTop = UDim.new(0,48)
-SPad.PaddingLeft = UDim.new(0,7)
-SPad.PaddingRight = UDim.new(0,7)
-SPad.Parent = SettingsPage
+local SettingsState = {ShowSearch=true,ShowFooter=true,CompactMobile=true}
 
-for i,n in ipairs(Categories) do
-    MakeToggle(SettingsPage,"Show "..n,i,true,function(v)
-        Enabled[n] = v
-        Panels[n].Visible = v
+-- SETTINGS SIDEBAR
+local function BuildSettingsSidebar()
+    ClearMenu()
+    SideTitle.Text = "Settings"
+    SideSubtitle.Text = "Configuration"
+    local b1 = MakeMenuButton("GUI",Config.SettingsIcon,1,function()
+        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="GUI"; UtilitySubtitle.Text="Interface options"; ClearUtility()
+        MakeSwitch(UtilityBody,"Show Search",SettingsState.ShowSearch,function(v) SettingsState.ShowSearch=v; Search.Visible=v end)
+        MakeSwitch(UtilityBody,"Show Footer",SettingsState.ShowFooter,function(v) SettingsState.ShowFooter=v; Footer.Visible=v end)
+        MakeSwitch(UtilityBody,"Compact Mobile",SettingsState.CompactMobile,function(v) SettingsState.CompactMobile=v end)
+    end)
+    local b2 = MakeMenuButton("Modules",Config.ProfilesIcon,2,function()
+        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Modules"; UtilitySubtitle.Text="Choose visible categories"; ClearUtility()
+        for _,n in ipairs(Categories) do
+            MakeSwitch(UtilityBody,"Show "..n,Enabled[n],function(v) Enabled[n]=v; Panels[n].Visible=v end)
+        end
+    end)
+    local b3 = MakeMenuButton("Credits",Config.AboutIcon,3,function()
+        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Credits"; UtilitySubtitle.Text="LanternVape v"..Config.Version; ClearUtility()
+        UtilityRow("LanternVape","UI / development")
+        UtilityRow("Community","Thank you for using LanternVape!")
+        UtilityRow("Discord","discord.gg/Pa7aGyKjPR")
     end)
 end
 
+-- THEME SIDEBAR
 local Themes = {
-    Orange=Color3.fromRGB(220,115,35),
-    Purple=Color3.fromRGB(150,85,220),
-    Blue=Color3.fromRGB(70,135,235),
-    Green=Color3.fromRGB(70,190,110),
-    Red=Color3.fromRGB(220,65,65),
-    Pink=Color3.fromRGB(220,85,155)
+    Orange=Color3.fromRGB(220,115,35), Purple=Color3.fromRGB(150,85,220), Blue=Color3.fromRGB(70,135,235),
+    Green=Color3.fromRGB(70,190,110), Red=Color3.fromRGB(220,65,65), Pink=Color3.fromRGB(220,85,155)
 }
 
-local TG = Instance.new("UIGridLayout")
-TG.CellSize = UDim2.fromOffset(70,24)
-TG.CellPadding = UDim2.fromOffset(4,4)
-TG.Parent = ThemesPage
-local TP = Instance.new("UIPadding")
-TP.PaddingTop = UDim.new(0,48)
-TP.PaddingLeft = UDim.new(0,7)
-TP.PaddingRight = UDim.new(0,7)
-TP.Parent = ThemesPage
-
-for n,c in pairs(Themes) do
-    local b = Instance.new("TextButton")
-    b.Name = n
-    b.BackgroundColor3 = Config.Darker
-    b.BorderSizePixel = 0
-    b.Text = n
-    b.TextColor3 = Config.White
-    b.TextSize = 8
-    b.Font = Enum.Font.GothamSemibold
-    b.AutoButtonColor = false
-    b.ZIndex = 43
-    b.Parent = ThemesPage
-    Corner(b,5)
-
-    local d = Instance.new("Frame")
-    d.Size = UDim2.fromOffset(7,7)
-    d.Position = UDim2.fromOffset(6,9)
-    d.BackgroundColor3 = c
-    d.BorderSizePixel = 0
-    d.Parent = b
-    Corner(d,20)
-
-    b.TextXAlignment = Enum.TextXAlignment.Right
-    local pp = Instance.new("UIPadding")
-    pp.PaddingRight = UDim.new(0,6)
-    pp.Parent = b
-
-    b.MouseButton1Click:Connect(function()
-        Config.Orange = c
-        Config.OrangeDark = c:Lerp(Color3.new(0,0,0),.35)
-        for _,o in ipairs(Gui:GetDescendants()) do
-            if o:IsA("UIStroke") and not(o.Color == Color3.new(0,0,0)) then
-                o.Color = c
-            elseif o:IsA("ScrollingFrame") then
-                o.ScrollBarImageColor3 = c
-            elseif o:IsA("Frame") and (o.Name == "BA" or o.Name == "SideAccent") then
-                o.BackgroundColor3 = c
-            end
+local function ApplyTheme(c)
+    Config.Orange=c
+    Config.OrangeDark=c:Lerp(Color3.new(0,0,0),.35)
+    for _,o in ipairs(Gui:GetDescendants()) do
+        if o:IsA("UIStroke") and o.Color ~= Color3.new(0,0,0) then o.Color=c end
+        if o:IsA("ScrollingFrame") then o.ScrollBarImageColor3=c end
+        if o:IsA("TextButton") and o == UtilityBack then o.BackgroundColor3=c end
+        if o:IsA("Frame") and (o.Name=="BA" or o.Name=="SideAccent") then o.BackgroundColor3=c end
+        if o:IsA("ImageLabel") or o:IsA("ImageButton") then
+            if o.Name ~= "SearchIcon" then o.ImageColor3=c end
         end
+    end
+end
+
+local function BuildThemeSidebar()
+    ClearMenu()
+    SideTitle.Text = "Themes"
+    SideSubtitle.Text = "Appearance"
+    MakeMenuButton("Colors",Config.ThemesIcon,1,function()
+        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Themes"; UtilitySubtitle.Text="Choose an accent color"; ClearUtility()
+        local grid=Instance.new("UIGridLayout")
+        grid.CellSize=UDim2.fromOffset(105,34)
+        grid.CellPadding=UDim2.fromOffset(6,6)
+        grid.Parent=UtilityBody
+        for n,c in pairs(Themes) do
+            local b=Instance.new("TextButton")
+            b.BackgroundColor3=Config.Darker
+            b.BorderSizePixel=0
+            b.Text=n
+            b.TextColor3=Config.White
+            b.TextSize=10
+            b.Font=Enum.Font.GothamSemibold
+            b.AutoButtonColor=false
+            b.ZIndex=42
+            b.Parent=UtilityBody
+            Corner(b,6)
+            local d=Instance.new("Frame")
+            d.Size=UDim2.fromOffset(8,8)
+            d.Position=UDim2.fromOffset(8,13)
+            d.BackgroundColor3=c
+            d.BorderSizePixel=0
+            d.ZIndex=43
+            d.Parent=b
+            Corner(d,8)
+            b.TextXAlignment=Enum.TextXAlignment.Right
+            local p=Instance.new("UIPadding")
+            p.PaddingRight=UDim.new(0,9)
+            p.Parent=b
+            b.MouseButton1Click:Connect(function() ApplyTheme(c) end)
+        end
+    end)
+    MakeMenuButton("Presets",Config.ProfilesIcon,2,function()
+        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Theme Presets"; UtilitySubtitle.Text="Quick accent presets"; ClearUtility()
+        for n,c in pairs(Themes) do UtilityRow(n,"Apply the "..n.." accent",function() ApplyTheme(c) end) end
     end)
 end
 
-local ProfileSearch = Instance.new("TextBox")
-ProfileSearch.Size = UDim2.new(1,-18,0,22)
-ProfileSearch.Position = UDim2.fromOffset(9,47)
-ProfileSearch.BackgroundColor3 = Config.Darker
-ProfileSearch.BorderSizePixel = 0
-ProfileSearch.PlaceholderText = "Search profiles..."
-ProfileSearch.PlaceholderColor3 = Config.Gray
-ProfileSearch.TextColor3 = Config.White
-ProfileSearch.TextSize = 8
-ProfileSearch.Font = Enum.Font.Gotham
-ProfileSearch.ZIndex = 43
-ProfileSearch.Parent = ProfilesPage
-Corner(ProfileSearch,5)
-Stroke(ProfileSearch,Config.Orange,.75,1)
-
-local NewProfileName = Instance.new("TextBox")
-NewProfileName.Size = UDim2.new(1,-50,0,22)
-NewProfileName.Position = UDim2.fromOffset(9,75)
-NewProfileName.BackgroundColor3 = Config.Darker
-NewProfileName.BorderSizePixel = 0
-NewProfileName.PlaceholderText = "New profile name..."
-NewProfileName.PlaceholderColor3 = Config.Gray
-NewProfileName.TextColor3 = Config.White
-NewProfileName.TextSize = 8
-NewProfileName.Font = Enum.Font.Gotham
-NewProfileName.ZIndex = 43
-NewProfileName.Parent = ProfilesPage
-Corner(NewProfileName,5)
-
-local AddProfile = Instance.new("TextButton")
-AddProfile.Size = UDim2.fromOffset(28,22)
-AddProfile.Position = UDim2.new(1,-37,0,75)
-AddProfile.BackgroundColor3 = Config.Orange
-AddProfile.BorderSizePixel = 0
-AddProfile.Text = "+"
-AddProfile.TextColor3 = Color3.new(1,1,1)
-AddProfile.TextSize = 16
-AddProfile.Font = Enum.Font.GothamBold
-AddProfile.ZIndex = 43
-AddProfile.Parent = ProfilesPage
-Corner(AddProfile,5)
-
-local ProfileList = Instance.new("ScrollingFrame")
-ProfileList.Size = UDim2.new(1,-18,1,-105)
-ProfileList.Position = UDim2.fromOffset(9,103)
-ProfileList.BackgroundTransparency = 1
-ProfileList.BorderSizePixel = 0
-ProfileList.ScrollBarThickness = 2
-ProfileList.ScrollBarImageColor3 = Config.Orange
-ProfileList.ZIndex = 43
-ProfileList.Parent = ProfilesPage
-
-local PL = Instance.new("UIListLayout")
-PL.Padding = UDim.new(0,4)
-PL.Parent = ProfileList
-
-local profileNames = {"Default"}
-
-local function RenderProfiles()
-    for _,c in ipairs(ProfileList:GetChildren()) do
-        if c:IsA("TextButton") then c:Destroy() end
+-- NORMAL SIDEBAR
+local function BuildNormalSidebar()
+    ClearMenu()
+    SideTitle.Text = "LanternVape"
+    SideSubtitle.Text = "Control Panel"
+    for i,d in ipairs(Items) do
+        local b=MakeMenuButton(d[1],d[2],i)
+        MenuButtons[d[1]]=b
+        NormalMenuItems[d[1]]=b
     end
-    local q = ProfileSearch.Text:lower()
-    local shown = 0
-    for _,name in ipairs(profileNames) do
-        if q == "" or name:lower():find(q,1,true) then
-            shown += 1
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1,0,0,28)
-            b.BackgroundColor3 = Config.Darker
-            b.BorderSizePixel = 0
-            b.Text = name
-            b.TextColor3 = Config.White
-            b.TextSize = 9
-            b.Font = Enum.Font.GothamSemibold
-            b.Parent = ProfileList
-            Corner(b,5)
-        end
+    MenuButtons.Settings.MouseButton1Click:Connect(function() Utility.Visible=false; Content.Visible=false; BuildSettingsSidebar(); SideMode="Settings"; SettingsBackState() end)
+    MenuButtons.Themes.MouseButton1Click:Connect(function() Utility.Visible=false; Content.Visible=false; BuildThemeSidebar(); SideMode="Themes"; SettingsBackState() end)
+    for _,n in ipairs({"Profiles","Targets","Keybinds","About"}) do
+        MenuButtons[n].MouseButton1Click:Connect(function()
+            Utility.Visible=true; Content.Visible=false; UtilityTitle.Text=n; UtilitySubtitle.Text="LanternVape"; ClearUtility()
+            UtilityRow(n,"This section is ready for additional modules.")
+        end)
     end
-    ProfileList.CanvasSize = UDim2.fromOffset(0,shown*32)
+    MenuButtons.Profiles.MouseButton1Click:Connect(function()
+        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Profiles"; UtilitySubtitle.Text="Manage saved profiles"; ClearUtility();
+        local q=ProfileSearch and ProfileSearch.Text:lower() or ""
+        for _,name in ipairs(profileNames) do if q=="" or name:lower():find(q,1,true) then UtilityRow(name,"Saved profile") end end
+    end)
 end
 
-RenderProfiles()
-ProfileSearch:GetPropertyChangedSignal("Text"):Connect(RenderProfiles)
-AddProfile.MouseButton1Click:Connect(function()
-    local n = NewProfileName.Text:gsub("^%s+",""):gsub("%s+$","")
-    if n == "" then return end
-    for _,e in ipairs(profileNames) do
-        if e:lower() == n:lower() then return end
-    end
-    table.insert(profileNames,n)
-    NewProfileName.Text = ""
-    RenderProfiles()
+local SideMode="Normal"
+function SettingsBackState()
+    UtilityBack.Visible=true
+end
+UtilityBack.MouseButton1Click:Connect(function()
+    Utility.Visible=false
+    Content.Visible=true
+    SideMode="Normal"
+    BuildNormalSidebar()
 end)
 
-local function ShowCategories()
-    Content.Visible = true
-    PageHolder.Visible = false
-    for _,p in pairs(Pages) do p.Visible = false end
-end
+-- PROFILE DATA
+local profileNames={"Default"}
+local ProfileSearch=Instance.new("TextBox")
+ProfileSearch.Visible=false
+ProfileSearch.Parent=Gui
 
-local function ShowPage(page)
-    Content.Visible = false
-    PageHolder.Visible = true
-    for _,p in pairs(Pages) do p.Visible = (p == page) end
-end
+BuildNormalSidebar()
 
-MenuButtons.Settings.MouseButton1Click:Connect(function() ShowPage(SettingsPage) end)
-MenuButtons.Profiles.MouseButton1Click:Connect(function() ShowPage(ProfilesPage) end)
-MenuButtons.Themes.MouseButton1Click:Connect(function() ShowPage(ThemesPage) end)
-
-for n,b in pairs(MenuButtons) do
-    if n ~= "Settings" and n ~= "Profiles" and n ~= "Themes" then
-        b.MouseButton1Click:Connect(ShowCategories)
-    end
-end
-
+-- SEARCH FILTER
 Search:GetPropertyChangedSignal("Text"):Connect(function()
-    local q = Search.Text:lower()
+    local q=Search.Text:lower()
     for n,p in pairs(Panels) do
-        p.Visible = Enabled[n] and (q == "" or n:lower():find(q,1,true) ~= nil)
+        p.Visible=Enabled[n] and (q=="" or n:lower():find(q,1,true)~=nil)
     end
 end)
 
+-- MOBILE TOGGLE
 local Mobile = Instance.new("ImageButton")
-Mobile.Name = "MobileToggle"
-Mobile.Size = UDim2.fromOffset(40,40)
-Mobile.AnchorPoint = Vector2.new(1,0)
-Mobile.Position = UDim2.new(1,-8,0,8)
-Mobile.BackgroundColor3 = Config.Black
-Mobile.BackgroundTransparency = .08
-Mobile.BorderSizePixel = 0
-Mobile.Visible = false
-Mobile.ZIndex = 200
-Mobile.Parent = Gui
+Mobile.Name="MobileToggle"
+Mobile.Size=UDim2.fromOffset(40,40)
+Mobile.AnchorPoint=Vector2.new(1,0)
+Mobile.Position=UDim2.new(1,-8,0,8)
+Mobile.BackgroundColor3=Config.Black
+Mobile.BackgroundTransparency=.08
+Mobile.BorderSizePixel=0
+Mobile.Visible=false
+Mobile.ZIndex=200
+Mobile.Parent=Gui
 Corner(Mobile,10)
 Stroke(Mobile,Config.Orange,.15,2)
+Mobile.Image=Config.Icon
+Mobile.ImageColor3=Config.Orange
+Mobile.ScaleType=Enum.ScaleType.Fit
 
-if Valid(Config.Icon) then
-    Mobile.Image = Config.Icon
-else
-    local m = Instance.new("TextLabel")
-    m.Size = UDim2.fromScale(1,1)
-    m.BackgroundTransparency = 1
-    m.Text = "LV"
-    m.TextColor3 = Config.Orange
-    m.TextSize = 15
-    m.Font = Enum.Font.GothamBold
-    m.Parent = Mobile
-end
-
-local function toggleMain()
-    Main.Visible = not Main.Visible
-end
-
-Close.MouseButton1Click:Connect(function() Main.Visible = false end)
+local function toggleMain() Main.Visible=not Main.Visible end
 Mobile.MouseButton1Click:Connect(toggleMain)
 
 UIS.InputBegan:Connect(function(i,p)
-    if not p and (i.KeyCode == Enum.KeyCode.LeftShift or i.KeyCode == Enum.KeyCode.RightShift) then
-        toggleMain()
-    end
+    if not p and (i.KeyCode==Enum.KeyCode.LeftShift or i.KeyCode==Enum.KeyCode.RightShift) then toggleMain() end
 end)
 
-local Camera = workspace.CurrentCamera
+-- RESPONSIVE
+local Camera=workspace.CurrentCamera
 local function Layout()
-    Camera = workspace.CurrentCamera or Camera
+    Camera=workspace.CurrentCamera or Camera
     if not Camera then return end
-    local w = Camera.ViewportSize.X
-    Scale.Scale = (w < 500 and .52) or (w < 650 and .60) or (w < 800 and .70) or (w < 1000 and .82) or .92
-    local tl,br = GuiService:GetGuiInset()
-    Main.Position = UDim2.fromOffset(15,15+tl.Y)
-    Main.Size = UDim2.new(1,-30,1,-30-tl.Y-br.Y)
-    SideMenu.Size = UDim2.fromOffset(235,math.max(150,Main.AbsoluteSize.Y-66))
-    if UIS.TouchEnabled then
-        Mobile.Position = UDim2.new(1,-8,0,8+tl.Y)
+    local w=Camera.ViewportSize.X
+    if UIS.TouchEnabled and SettingsState.CompactMobile then
+        Scale.Scale=(w<500 and .52) or (w<650 and .60) or (w<800 and .70) or .82
+    else
+        Scale.Scale=(w<800 and .70) or (w<1000 and .82) or .92
     end
+    local tl,br=GuiService:GetGuiInset()
+    Main.Position=UDim2.fromOffset(15,15+tl.Y)
+    Main.Size=UDim2.new(1,-30,1,-30-tl.Y-br.Y)
+    SideMenu.Size=UDim2.fromOffset(235,math.max(150,Main.AbsoluteSize.Y-66))
+    if UIS.TouchEnabled then Mobile.Position=UDim2.new(1,-8,0,8+tl.Y) end
     LayoutCategories()
 end
-
 Layout()
 if Camera then Camera:GetPropertyChangedSignal("ViewportSize"):Connect(Layout) end
 
-local Finished = false
+-- LOADING FINISH
+local Finished=false
 local function FinishLoading()
     if Finished then return end
-    Finished = true
-    Main.Visible = true
-    Mobile.Visible = UIS.TouchEnabled
+    Finished=true
+    Main.Visible=true
+    Mobile.Visible=UIS.TouchEnabled
     Tween(Loading,.35,{BackgroundTransparency=1})
     Tween(Tint,.35,{BackgroundTransparency=1})
     Tween(LoadingTitle,.35,{TextTransparency=1})
     Tween(BarBG,.35,{BackgroundTransparency=1})
     Tween(Bar,.35,{BackgroundTransparency=1})
-    task.delay(.4,function()
-        if Loading and Loading.Parent then Loading:Destroy() end
-    end)
+    task.delay(.4,function() if Loading and Loading.Parent then Loading:Destroy() end end)
 end
 
 Tween(Bar,Config.LoadingTime,{Size=UDim2.new(1,0,1,0)})
@@ -1057,334 +1002,3 @@ task.delay(Config.LoadingTime,FinishLoading)
 task.delay(5,FinishLoading)
 
 print("["..Config.Name.."] Loaded "..Config.Version)
-
--- LanternVape UI update v2.10
--- LanternVape v2.10 UI patch
--- Loaded after the main UI so the full main.lua remains intact.
-local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
-local gui = player and player:FindFirstChild("PlayerGui")
-local root = gui and gui:FindFirstChild("LanternVape")
-if not root then return end
-
-local orange = Color3.fromRGB(220,115,35)
-local dark = Color3.fromRGB(21,21,21)
-local black = Color3.fromRGB(8,8,8)
-local white = Color3.fromRGB(245,245,245)
-local gray = Color3.fromRGB(145,145,145)
-
-local function corner(o,r)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0,r)
-    c.Parent = o
-end
-
-local function stroke(o,c,t,w)
-    local s = Instance.new("UIStroke")
-    s.Color = c
-    s.Transparency = t or 0
-    s.Thickness = w or 1
-    s.Parent = o
-end
-
--- Replace the text fallback next to Search with a real image icon.
-local main = root:FindFirstChild("Main")
-local search = main and main:FindFirstChild("Search")
-if search then
-    local old = search:FindFirstChild("SearchFallback")
-    if old then old:Destroy() end
-    local icon = Instance.new("ImageLabel")
-    icon.Name = "SearchIcon"
-    icon.Size = UDim2.fromOffset(18,18)
-    icon.Position = UDim2.fromOffset(10,8)
-    icon.BackgroundTransparency = 1
-    icon.Image = "rbxassetid://6031154871"
-    icon.ImageColor3 = gray
-    icon.ScaleType = Enum.ScaleType.Fit
-    icon.ZIndex = search.ZIndex + 1
-    icon.Parent = search
-end
-
--- Replace square/unrendered fallback glyphs with the actual sidebar icon assets.
-local side = main and main:FindFirstChild("SideMenu")
-local menu = side and side:FindFirstChild("Menu")
-if menu then
-    local ids = {
-        Settings = "rbxassetid://6031280882",
-        Profiles = "rbxassetid://6031075930",
-        Targets = "rbxassetid://6031763426",
-        Themes = "rbxassetid://6031094678",
-        Keybinds = "rbxassetid://129697930",
-        About = "rbxassetid://6031075930"
-    }
-    for name,id in pairs(ids) do
-        local b = menu:FindFirstChild(name)
-        if b then
-            local f = b:FindFirstChildWhichIsA("TextLabel")
-            if f and (f.Text == "⚙" or f.Text == "♙" or f.Text == "◎" or f.Text == "◆" or f.Text == "⌨") then
-                f.Visible = false
-            end
-            local img = b:FindFirstChildWhichIsA("ImageLabel")
-            if img then
-                img.Image = id
-                img.Visible = true
-                img.ImageColor3 = orange
-            end
-        end
-    end
-end
-
--- Speed: guarantee a clean three-dot button instead of any missing glyph.
-if main then
-    local speedDots = main:FindFirstChild("SpeedDots", true)
-    if speedDots and speedDots:IsA("TextButton") then
-        speedDots.Text = "..."
-        speedDots.TextSize = 15
-        speedDots.TextColor3 = gray
-        speedDots.Font = Enum.Font.GothamBold
-    end
-end
-
--- Replace Settings/Themes pages with an in-sidebar view.
-if side then
-    local oldView = side:FindFirstChild("V210SidebarView")
-    if oldView then oldView:Destroy() end
-
-    local regularChildren = {}
-    for _,child in ipairs(side:GetChildren()) do
-        if child.Name ~= "V210SidebarView" then
-            regularChildren[child] = child.Visible
-        end
-    end
-
-    local view = Instance.new("Frame")
-    view.Name = "V210SidebarView"
-    view.Size = UDim2.fromScale(1,1)
-    view.BackgroundTransparency = 1
-    view.Visible = false
-    view.ZIndex = 100
-    view.Parent = side
-
-    local header = Instance.new("Frame")
-    header.Size = UDim2.new(1,0,0,58)
-    header.BackgroundColor3 = black
-    header.BackgroundTransparency = .02
-    header.BorderSizePixel = 0
-    header.ZIndex = 101
-    header.Parent = view
-    corner(header,7)
-    stroke(header,orange,.45,1)
-
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1,-58,0,26)
-    title.Position = UDim2.fromOffset(14,8)
-    title.BackgroundTransparency = 1
-    title.TextColor3 = white
-    title.TextSize = 16
-    title.Font = Enum.Font.GothamBold
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.ZIndex = 102
-    title.Parent = header
-
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Size = UDim2.new(1,-58,0,18)
-    subtitle.Position = UDim2.fromOffset(14,33)
-    subtitle.BackgroundTransparency = 1
-    subtitle.TextColor3 = gray
-    subtitle.TextSize = 10
-    subtitle.Font = Enum.Font.Gotham
-    subtitle.TextXAlignment = Enum.TextXAlignment.Left
-    subtitle.ZIndex = 102
-    subtitle.Parent = header
-
-    local close = Instance.new("TextButton")
-    close.Name = "Close"
-    close.Size = UDim2.fromOffset(34,34)
-    close.Position = UDim2.new(1,-42,0,12)
-    close.BackgroundColor3 = Color3.fromRGB(150,60,20)
-    close.BorderSizePixel = 0
-    close.Text = "X"
-    close.TextColor3 = white
-    close.TextSize = 14
-    close.Font = Enum.Font.GothamBold
-    close.AutoButtonColor = false
-    close.ZIndex = 103
-    close.Parent = header
-    corner(close,7)
-    stroke(close,orange,.15,1)
-
-    local body = Instance.new("ScrollingFrame")
-    body.Name = "Body"
-    body.Size = UDim2.new(1,0,1,-63)
-    body.Position = UDim2.fromOffset(0,63)
-    body.BackgroundTransparency = 1
-    body.BorderSizePixel = 0
-    body.ScrollBarThickness = 2
-    body.ScrollBarImageColor3 = orange
-    body.CanvasSize = UDim2.fromOffset(0,0)
-    body.ZIndex = 101
-    body.Parent = view
-
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0,5)
-    layout.Parent = body
-
-    local padding = Instance.new("UIPadding")
-    padding.PaddingLeft = UDim.new(0,7)
-    padding.PaddingRight = UDim.new(0,7)
-    padding.PaddingTop = UDim.new(0,5)
-    padding.Parent = body
-
-    local function clearBody()
-        for _,c in ipairs(body:GetChildren()) do
-            if not c:IsA("UIListLayout") and not c:IsA("UIPadding") then c:Destroy() end
-        end
-    end
-
-    local function row(text,desc,order,callback)
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1,0,0,50)
-        b.BackgroundColor3 = dark
-        b.BorderSizePixel = 0
-        b.Text = ""
-        b.LayoutOrder = order
-        b.AutoButtonColor = false
-        b.ZIndex = 102
-        b.Parent = body
-        corner(b,6)
-        stroke(b,orange,.9,1)
-
-        local t = Instance.new("TextLabel")
-        t.Size = UDim2.new(1,-18,0,21)
-        t.Position = UDim2.fromOffset(9,5)
-        t.BackgroundTransparency = 1
-        t.Text = text
-        t.TextColor3 = white
-        t.TextSize = 12
-        t.Font = Enum.Font.GothamSemibold
-        t.TextXAlignment = Enum.TextXAlignment.Left
-        t.ZIndex = 103
-        t.Parent = b
-
-        local d = Instance.new("TextLabel")
-        d.Size = UDim2.new(1,-18,0,17)
-        d.Position = UDim2.fromOffset(9,27)
-        d.BackgroundTransparency = 1
-        d.Text = desc
-        d.TextColor3 = gray
-        d.TextSize = 9
-        d.Font = Enum.Font.Gotham
-        d.TextXAlignment = Enum.TextXAlignment.Left
-        d.ZIndex = 103
-        d.Parent = b
-
-        b.MouseEnter:Connect(function() b.BackgroundColor3 = Color3.fromRGB(45,25,15) end)
-        b.MouseLeave:Connect(function() b.BackgroundColor3 = dark end)
-        if callback then b.MouseButton1Click:Connect(callback) end
-        return b
-    end
-
-    local function showRegular()
-        view.Visible = false
-        for child,wasVisible in pairs(regularChildren) do
-            if child and child.Parent == side then child.Visible = wasVisible end
-        end
-    end
-
-    close.MouseButton1Click:Connect(showRegular)
-
-    local function showView(name,sub,contentBuilder)
-        for child in pairs(regularChildren) do
-            if child and child.Parent == side then child.Visible = false end
-        end
-        view.Visible = true
-        title.Text = name
-        subtitle.Text = sub
-        clearBody()
-        contentBuilder()
-        task.defer(function()
-            body.CanvasSize = UDim2.fromOffset(0,layout.AbsoluteContentSize.Y + 10)
-        end)
-    end
-
-    local function showSettings()
-        showView("Settings","LanternVape configuration",function()
-            row("GUI","Interface, scale and display options",1)
-            row("Modules","Control which modules are visible",2)
-            row("Credits","LanternVape contributors and acknowledgements",3)
-        end)
-    end
-
-    local function showThemes()
-        showView("Themes","Choose an accent color",function()
-            local themes = {
-                {"Orange",Color3.fromRGB(220,115,35)},
-                {"Purple",Color3.fromRGB(150,85,220)},
-                {"Blue",Color3.fromRGB(70,135,235)},
-                {"Green",Color3.fromRGB(70,190,110)},
-                {"Red",Color3.fromRGB(220,65,65)},
-                {"Pink",Color3.fromRGB(220,85,155)}
-            }
-            for i,data in ipairs(themes) do
-                local b = Instance.new("TextButton")
-                b.Size = UDim2.new(1,0,0,38)
-                b.BackgroundColor3 = dark
-                b.BorderSizePixel = 0
-                b.Text = ""
-                b.LayoutOrder = i
-                b.AutoButtonColor = false
-                b.ZIndex = 102
-                b.Parent = body
-                corner(b,6)
-                stroke(b,data[2],.7,1)
-
-                local dot = Instance.new("Frame")
-                dot.Size = UDim2.fromOffset(10,10)
-                dot.Position = UDim2.fromOffset(10,14)
-                dot.BackgroundColor3 = data[2]
-                dot.BorderSizePixel = 0
-                dot.ZIndex = 103
-                dot.Parent = b
-                corner(dot,10)
-
-                local label = Instance.new("TextLabel")
-                label.Size = UDim2.new(1,-35,1,0)
-                label.Position = UDim2.fromOffset(30,0)
-                label.BackgroundTransparency = 1
-                label.Text = data[1]
-                label.TextColor3 = white
-                label.TextSize = 11
-                label.Font = Enum.Font.GothamSemibold
-                label.TextXAlignment = Enum.TextXAlignment.Left
-                label.ZIndex = 103
-                label.Parent = b
-
-                b.MouseButton1Click:Connect(function()
-                    local newOrange = data[2]
-                    local newDark = newOrange:Lerp(Color3.new(0,0,0),.35)
-                    for _,o in ipairs(root:GetDescendants()) do
-                        if o:IsA("UIStroke") and o.Color ~= Color3.new(0,0,0) then o.Color = newOrange end
-                        if o:IsA("ScrollingFrame") then o.ScrollBarImageColor3 = newOrange end
-                        if o:IsA("Frame") and (o.Name == "BA" or o.Name == "SideAccent") then o.BackgroundColor3 = newOrange end
-                    end
-                    for _,o in ipairs(menu and menu:GetChildren() or {}) do
-                        if o:IsA("TextButton") then o.BackgroundColor3 = dark end
-                    end
-                end)
-            end
-        end)
-    end
-
-    local settingsButton = menu and menu:FindFirstChild("Settings")
-    local themesButton = menu and menu:FindFirstChild("Themes")
-    if settingsButton then settingsButton.MouseButton1Click:Connect(showSettings) end
-    if themesButton then themesButton.MouseButton1Click:Connect(showThemes) end
-end
-
--- Mark the current UI version so the loader visibly reports the update.
-local version = main and main:FindFirstChild("Footer",true) and main.Footer:FindFirstChild("Version")
-if version and version:IsA("TextLabel") then version.Text = "v2.10" end
-print("[LanternVape] UI update v2.10 applied")
