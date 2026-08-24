@@ -26,6 +26,7 @@ jobs:
 
           p = Path("main.lua")
           s = p.read_text(encoding="utf-8")
+          original = s
           marker = "-- LanternVape asset-backed UI update v2.12"
 
           if marker not in s:
@@ -118,10 +119,17 @@ jobs:
               )
 
               s += "\\n\\n" + marker + "\\n"
-              p.write_text(s, encoding="utf-8")
+
+          # SideTitle is now an ImageLabel. Never assign .Text to it.
+          s = s.replace('SideTitle.Text = "Settings"', 'SideTitle.Image = LanternVapeTextAsset or ""')
+          s = s.replace('SideTitle.Text = "Themes"', 'SideTitle.Image = LanternVapeTextAsset or ""')
+          s = s.replace('SideTitle.Text = "LanternVape"', 'SideTitle.Image = LanternVapeTextAsset or ""')
+
+          p.write_text(s, encoding="utf-8")
+          if s != original:
               print("Patched main.lua", len(s), "bytes")
           else:
-              print("v2.12 asset patch already present")
+              print("main.lua already up to date")
           PY
 
       - name: Validate
@@ -134,6 +142,10 @@ jobs:
           grep -q 'local LanternVapeTextAsset = LoadRemoteAsset' main.lua
           grep -q 'local SideTitle = Instance.new("ImageLabel")' main.lua
           grep -q 'Mobile.Image=MobileIconAsset or Config.Icon' main.lua
+          if grep -q 'SideTitle.Text' main.lua; then
+            echo "SideTitle.Text remains after conversion to ImageLabel"
+            exit 1
+          fi
 
       - name: Commit main.lua
         run: |
@@ -145,5 +157,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add main.lua
-          git commit -m "Use uploaded LanternVape UI assets"
+          git commit -m "Fix LanternVape image sidebar title"
           git push
