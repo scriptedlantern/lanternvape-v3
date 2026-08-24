@@ -1,1 +1,1 @@
-LanternVape v2.12 asset UI patch trigger - retry.
+LanternVape v2.12 clean asset rename trigger.
