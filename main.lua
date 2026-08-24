@@ -8,11 +8,11 @@ local PlayerGui=Player:WaitForChild("PlayerGui",10)
 if not PlayerGui then return end
 
 local Config={
- Name="LanternVape",Version="2.04",
+ Name="LanternVape",Version="2.05",
  Icon="rbxassetid://0",CloseIcon="rbxassetid://0",
- SettingsIcon="rbxassetid://3599164226",ProfilesIcon="rbxassetid://7074334159",
+ SettingsIcon="rbxassetid://6031280882",ProfilesIcon="rbxthumb://type=AvatarHeadShot&id="..Player.UserId.."&w=48&h=48",
  TargetsIcon="rbxassetid://6031763426",ThemesIcon="rbxassetid://6031094678",
- KeybindsIcon="rbxassetid://0",AboutIcon="rbxassetid://6031075930",
+ KeybindsIcon="rbxassetid://129697930",AboutIcon="rbxassetid://6031075930",
  LoadingTime=2.2,
  Orange=Color3.fromRGB(220,115,35),OrangeDark=Color3.fromRGB(145,68,20),
  Black=Color3.fromRGB(8,8,8),Dark=Color3.fromRGB(14,14,14),Darker=Color3.fromRGB(21,21,21),
@@ -105,7 +105,7 @@ end
 Content:GetPropertyChangedSignal("AbsoluteSize"):Connect(LayoutCategories)
 
 local PageHolder=Instance.new("Frame") PageHolder.Position=Content.Position PageHolder.Size=Content.Size PageHolder.BackgroundTransparency=1 PageHolder.Visible=false PageHolder.ZIndex=40 PageHolder.Parent=Main
-local SettingsPage=Instance.new("Frame") SettingsPage.Size=UDim2.fromScale(1,1) SettingsPage.BackgroundColor3=Config.Black SettingsPage.BackgroundTransparency=.02 SettingsPage.BorderSizePixel=0 SettingsPage.Visible=false SettingsPage.Parent=PageHolder Corner(SettingsPage,7) Stroke(SettingsPage,Config.Orange,.55,1)
+local SettingsPage=Instance.new("Frame") SettingsPage.Size=UDim2.new(1,-36,1,-36) SettingsPage.Position=UDim2.fromOffset(18,18) SettingsPage.BackgroundColor3=Config.Black SettingsPage.BackgroundTransparency=.02 SettingsPage.BorderSizePixel=0 SettingsPage.Visible=false SettingsPage.Parent=PageHolder Corner(SettingsPage,7) Stroke(SettingsPage,Config.Orange,.55,1)
 local ThemesPage=SettingsPage:Clone() ThemesPage.Name="ThemesPage" ThemesPage.Visible=false ThemesPage.Parent=PageHolder
 local function title(p,a,b)local t=Instance.new("TextLabel")t.Size=UDim2.new(1,-30,0,35)t.Position=UDim2.fromOffset(15,10)t.BackgroundTransparency=1 t.Text=a t.TextColor3=Config.White t.TextSize=18 t.Font=Enum.Font.GothamBold t.Parent=p local s=Instance.new("TextLabel")s.Size=UDim2.new(1,-30,0,22)s.Position=UDim2.fromOffset(15,40)s.BackgroundTransparency=1 s.Text=b s.TextColor3=Config.Gray s.TextSize=11 s.Font=Enum.Font.Gotham s.Parent=p end
 title(SettingsPage,"Settings","Choose which categories are visible") title(ThemesPage,"Themes","Choose an accent color")
