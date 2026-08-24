@@ -17,54 +17,126 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply v2.10 UI patch
-        shell: bash
+      - name: Apply asset-backed UI update
+        shell: python
         run: |
-          set -euo pipefail
-
-          test -f main.lua
-          test -f ui_update_v210.lua
-
-          if grep -q "LanternVape UI update v2.10" main.lua; then
-            echo "v2.10 patch already present; nothing to apply."
-            exit 0
-          fi
-
-          printf '\n\n-- LanternVape UI update v2.10\n' >> main.lua
-          cat ui_update_v210.lua >> main.lua
-
-          python3 - <<'PY'
           from pathlib import Path
+
           p = Path("main.lua")
           s = p.read_text(encoding="utf-8")
-          s = s.replace('Version = "2.09"', 'Version = "2.10"', 1)
-          s = s.replace('Icon = "rbxassetid://0"', 'Icon = "rbxassetid://6031154871"', 1)
-          s = s.replace('CloseIcon = "rbxassetid://0"', 'CloseIcon = "rbxassetid://6031075930"', 1)
-          p.write_text(s, encoding="utf-8")
-          print(f"Updated main.lua: {len(s)} bytes")
-          PY
+          marker = "-- LanternVape asset-backed UI update v2.12"
 
-      - name: Validate updated main.lua
+          if marker not in s:
+              anchor = 'local function ButtonIcon(parent,asset,size,pos,z)\n'
+              helper = r'''local function LoadRemoteAsset(url,name)
+    local getter = getcustomasset or getsynasset
+    if type(getter) ~= "function" or type(writefile) ~= "function" then
+        return nil
+    end
+
+    local okData, data = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if not okData or type(data) ~= "string" or data == "" then
+        return nil
+    end
+
+    local fileName = "LanternVape_"..name
+    pcall(function()
+        if type(isfile) ~= "function" or not isfile(fileName) then
+            writefile(fileName, data)
+        end
+    end)
+
+    local okAsset, asset = pcall(function()
+        return getter(fileName)
+    end)
+    return okAsset and asset or nil
+end
+
+local MobileIconAsset = LoadRemoteAsset(
+    "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/%20mobile_icon.png",
+    "mobile_icon.png"
+)
+local LanternVapeTextAsset = LoadRemoteAsset(
+    "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/lanternvape_text.png",
+    "lanternvape_text.png"
+)
+
+'''
+              if anchor not in s:
+                  raise SystemExit("Could not find asset helper insertion point")
+              s = s.replace(anchor, helper + anchor, 1)
+
+              old_title = '''local SideTitle = Instance.new("TextLabel")
+SideTitle.Size = UDim2.new(1,-20,0,26)
+SideTitle.Position = UDim2.fromOffset(14,8)
+SideTitle.BackgroundTransparency = 1
+SideTitle.Text = "LanternVape"
+SideTitle.TextColor3 = Config.White
+SideTitle.TextSize = 17
+SideTitle.Font = Enum.Font.GothamBold
+SideTitle.TextXAlignment = Enum.TextXAlignment.Left
+SideTitle.ZIndex = 22
+SideTitle.Parent = SideHeader
+
+local SideSubtitle = Instance.new("TextLabel")
+SideSubtitle.Size = UDim2.new(1,-20,0,18)
+SideSubtitle.Position = UDim2.fromOffset(14,33)
+SideSubtitle.BackgroundTransparency = 1
+SideSubtitle.Text = "Control Panel"
+SideSubtitle.TextColor3 = Config.Gray
+SideSubtitle.TextSize = 11
+SideSubtitle.Font = Enum.Font.Gotham
+SideSubtitle.ZIndex = 22
+SideSubtitle.Parent = SideHeader
+'''
+              new_title = '''local SideTitle = Instance.new("ImageLabel")
+SideTitle.Name = "LanternVapeLogo"
+SideTitle.Size = UDim2.new(1,-20,0,32)
+SideTitle.Position = UDim2.fromOffset(10,7)
+SideTitle.BackgroundTransparency = 1
+SideTitle.Image = LanternVapeTextAsset or ""
+SideTitle.ImageColor3 = Color3.new(1,1,1)
+SideTitle.ScaleType = Enum.ScaleType.Fit
+SideTitle.ZIndex = 22
+SideTitle.Parent = SideHeader
+'''
+              if old_title not in s:
+                  raise SystemExit("Could not find sidebar title block")
+              s = s.replace(old_title, new_title, 1)
+
+              s = s.replace('    SideSubtitle.Text = "Configuration"\n', '')
+              s = s.replace('    SideSubtitle.Text = "Appearance"\n', '')
+              s = s.replace('    SideSubtitle.Text = "Control Panel"\n', '')
+              s = s.replace('Mobile.Image=Config.Icon\nMobile.ImageColor3=Config.Orange', 'Mobile.Image=MobileIconAsset or Config.Icon\nMobile.ImageColor3=Color3.new(1,1,1)')
+
+              s += '\n\n' + marker + '\n'
+              p.write_text(s, encoding="utf-8")
+              print(f"Applied asset-backed UI update: {len(s)} bytes")
+          else:
+              print("Asset-backed UI update already present; nothing to apply.")
+
+      - name: Validate update
         shell: python
         run: |
           from pathlib import Path
           s = Path("main.lua").read_text(encoding="utf-8")
           required = [
-              'Name = "LanternVape"',
-              'Version = "2.10"',
-              'Icon = "rbxassetid://6031154871"',
-              'LOADING LANTERNVAPE..',
-              'local SpeedEnabled = false',
-              'local Categories = {"Combat","Blatant","External","Rendering","Extra"}',
-              'local Mobile = Instance.new("ImageButton")',
-              'KeyCode == Enum.KeyCode.LeftShift',
-              'LanternVape UI update v2.10',
-              'SearchIcon',
-              'V210SidebarView',
+              'Version = "2.11"',
+              'local MobileIconAsset = LoadRemoteAsset(',
+              'local LanternVapeTextAsset = LoadRemoteAsset(',
+              'local SideTitle = Instance.new("ImageLabel")',
+              'SideTitle.Name = "LanternVapeLogo"',
+              'Mobile.Image=MobileIconAsset or Config.Icon',
+              'LanternVape asset-backed UI update v2.12',
           ]
           missing = [x for x in required if x not in s]
           if missing:
               raise SystemExit("main.lua validation failed; missing: " + ", ".join(missing))
+          for asset in ["assets/lanternvape_text.png", "assets/ mobile_icon.png"]:
+              if not Path(asset).is_file():
+                  raise SystemExit(f"Missing uploaded asset: {asset}")
           print(f"Validated main.lua ({len(s)} bytes)")
 
       - name: Commit applied update
@@ -72,11 +144,11 @@ jobs:
         run: |
           set -euo pipefail
           if git diff --quiet -- main.lua; then
-            echo "No changes to commit."
+            echo "No main.lua changes to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add main.lua
-          git commit -m "Apply LanternVape v2.10 UI update"
+          git commit -m "Use uploaded LanternVape UI assets"
           git push
