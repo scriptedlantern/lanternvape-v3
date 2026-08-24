@@ -1,0 +1,88 @@
+name: LanternVape UI Fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch main.lua
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path("main.lua")
+          s = p.read_text(encoding="utf-8")
+
+          s = s.replace(
+              'local RunService = game:GetService("RunService")',
+              'local RunService = game:GetService("RunService")\nlocal Lighting = game:GetService("Lighting")',
+              1,
+          )
+
+          s = s.replace(
+              'local SearchIcon = Image(Search,Config.SearchIcon,UDim2.fromOffset(17,17),UDim2.fromOffset(10,8),5)\nSearchIcon.ImageColor3 = Config.Gray',
+              'local SearchIcon = Image(Search,Config.SearchIcon,UDim2.fromOffset(14,14),UDim2.fromOffset(8,10),5)\nSearchIcon.ImageColor3 = Config.Gray\nSearchIcon.ZIndex = 6',
+              1,
+          )
+
+          s = s.replace(
+              'SP.PaddingLeft = UDim.new(0,38)',
+              'SP.PaddingLeft = UDim.new(0,30)',
+              1,
+          )
+
+          marker = 'Gui.Parent = PlayerGui\n'
+          blur_code = '''\n-- BACKGROUND BLUR\nlocal BackgroundBlur = Instance.new("BlurEffect")\nBackgroundBlur.Name = "LanternVapeBlur"\nBackgroundBlur.Size = 0\nBackgroundBlur.Enabled = true\nBackgroundBlur.Parent = Lighting\n\nlocal function SetBackgroundBlur(enabled)\n    local target = enabled and 14 or 0\n    TweenService:Create(BackgroundBlur, TweenInfo.new(.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = target}):Play()\nend\n'''
+          if 'Name = "LanternVapeBlur"' not in s:
+              s = s.replace(marker, marker + blur_code, 1)
+
+          s = s.replace(
+              'local SettingsState = {ShowSearch=true,ShowFooter=true,CompactMobile=true}',
+              'local SettingsState = {ShowSearch=true,ShowFooter=true,CompactMobile=true,HideGUI=false,BlurBackground=true}',
+              1,
+          )
+
+          old_gui = '''        MakeSwitch(UtilityBody,"Show Search",SettingsState.ShowSearch,function(v) SettingsState.ShowSearch=v; Search.Visible=v end)\n        MakeSwitch(UtilityBody,"Show Footer",SettingsState.ShowFooter,function(v) SettingsState.ShowFooter=v; Footer.Visible=v end)\n        MakeSwitch(UtilityBody,"Compact Mobile",SettingsState.CompactMobile,function(v) SettingsState.CompactMobile=v end)'''
+          new_gui = '''        MakeSwitch(UtilityBody,"Show Search",SettingsState.ShowSearch,function(v) SettingsState.ShowSearch=v; Search.Visible=v end)\n        MakeSwitch(UtilityBody,"Show Footer",SettingsState.ShowFooter,function(v) SettingsState.ShowFooter=v; Footer.Visible=v end)\n        MakeSwitch(UtilityBody,"Compact Mobile",SettingsState.CompactMobile,function(v) SettingsState.CompactMobile=v; Layout() end)\n        MakeSwitch(UtilityBody,"Hide GUI",SettingsState.HideGUI,function(v)\n            SettingsState.HideGUI=v\n            Main.Visible=not v\n            Utility.Visible=false\n            if v then SetBackgroundBlur(false) end\n        end)\n        MakeSwitch(UtilityBody,"Blur Background",SettingsState.BlurBackground,function(v)\n            SettingsState.BlurBackground=v\n            if not Main.Visible then SetBackgroundBlur(false) else SetBackgroundBlur(v) end\n        end)'''
+          if old_gui not in s:
+              raise SystemExit("GUI settings block not found")
+          s = s.replace(old_gui, new_gui, 1)
+
+          old_toggle = 'local function toggleMain() Main.Visible=not Main.Visible end\nMobile.MouseButton1Click:Connect(toggleMain)'
+          new_toggle = '''local function toggleMain()\n    Main.Visible=not Main.Visible\n    if Main.Visible then\n        if SettingsState.BlurBackground and not SettingsState.HideGUI then SetBackgroundBlur(true) end\n    else\n        SetBackgroundBlur(false)\n    end\nend\nMobile.MouseButton1Click:Connect(toggleMain)'''
+          if old_toggle not in s:
+              raise SystemExit("toggleMain block not found")
+          s = s.replace(old_toggle, new_toggle, 1)
+
+          s = s.replace(
+              '    Main.Visible=true\n    Mobile.Visible=UIS.TouchEnabled',
+              '    Main.Visible=not SettingsState.HideGUI\n    Mobile.Visible=UIS.TouchEnabled\n    if Main.Visible and SettingsState.BlurBackground then SetBackgroundBlur(true) end',
+              1,
+          )
+
+          p.write_text(s, encoding="utf-8")
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add main.lua
+          git commit -m "fix: mobile icon, search spacing, GUI settings and blur" || true
+          git push
+
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          git rm -f .github/workflows/lanternvape-ui-fix.yml || true
+          git commit -m "chore: remove temporary UI fix workflow" || true
+          git push || true
