@@ -1,1 +1,1 @@
-LanternVape v2.10 UI patch trigger.
+LanternVape v2.12 asset UI patch trigger.
