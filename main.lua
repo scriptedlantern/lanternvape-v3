@@ -833,7 +833,7 @@ local SettingsState = {ShowSearch=true,ShowFooter=true,CompactMobile=true,HideGU
 -- SETTINGS SIDEBAR
 local function BuildSettingsSidebar()
     ClearMenu()
-    SideTitle.Text = "Settings"
+    SideTitle.Image = LanternVapeTextAsset or ""
     local b1 = MakeMenuButton("GUI",Config.SettingsIcon,1,function()
         Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="GUI"; UtilitySubtitle.Text="Interface options"; ClearUtility()
         MakeSwitch(UtilityBody,"Show Search",SettingsState.ShowSearch,function(v) SettingsState.ShowSearch=v; Search.Visible=v end)
@@ -886,7 +886,7 @@ end
 
 local function BuildThemeSidebar()
     ClearMenu()
-    SideTitle.Text = "Themes"
+    SideTitle.Image = LanternVapeTextAsset or ""
     MakeMenuButton("Colors",Config.ThemesIcon,1,function()
         Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Themes"; UtilitySubtitle.Text="Choose an accent color"; ClearUtility()
         local grid=Instance.new("UIGridLayout")
@@ -929,7 +929,7 @@ end
 -- NORMAL SIDEBAR
 local function BuildNormalSidebar()
     ClearMenu()
-    SideTitle.Text = "LanternVape"
+    SideTitle.Image = LanternVapeTextAsset or ""
     for i,d in ipairs(Items) do
         local b=MakeMenuButton(d[1],d[2],i)
         MenuButtons[d[1]]=b
