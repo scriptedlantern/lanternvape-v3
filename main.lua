@@ -3,14 +3,10 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local Player = Players.LocalPlayer
-if not Player then
-    return
-end
+if not Player then return end
 
 local PlayerGui = Player:WaitForChild("PlayerGui", 10)
-if not PlayerGui then
-    return
-end
+if not PlayerGui then return end
 
 --==================================================
 -- CONFIG
@@ -18,45 +14,39 @@ end
 
 local Config = {
     Name = "LanternVape",
-    Version = "1.0.1",
+    Version = "2.00",
 
-    -- Put your icon asset ID here
+    -- Put your image asset IDs here.
     Icon = "rbxassetid://0",
+    MenuIcon = "rbxassetid://0",
+    CloseIcon = "rbxassetid://0",
+    SearchIcon = "rbxassetid://0",
+    SettingsIcon = "rbxassetid://0",
+    ProfilesIcon = "rbxassetid://0",
+    TargetsIcon = "rbxassetid://0",
+    ThemesIcon = "rbxassetid://0",
+    KeybindsIcon = "rbxassetid://0",
+    AboutIcon = "rbxassetid://0",
 
     LoadingTime = 2.2,
 
     Orange = Color3.fromRGB(220, 115, 35),
     OrangeDark = Color3.fromRGB(145, 68, 20),
-
     Black = Color3.fromRGB(8, 8, 8),
     Dark = Color3.fromRGB(14, 14, 14),
     Darker = Color3.fromRGB(21, 21, 21),
-
     White = Color3.fromRGB(235, 235, 235),
     Gray = Color3.fromRGB(145, 145, 145)
 }
 
---==================================================
--- CLEAN OLD GUI
---==================================================
-
 local OldGui = PlayerGui:FindFirstChild("LanternVape")
-
-if OldGui then
-    OldGui:Destroy()
-end
-
---==================================================
--- GUI
---==================================================
+if OldGui then OldGui:Destroy() end
 
 local Gui = Instance.new("ScreenGui")
-
 Gui.Name = "LanternVape"
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
 Gui.Parent = PlayerGui
 
 --==================================================
@@ -65,41 +55,29 @@ Gui.Parent = PlayerGui
 
 local function Tween(Object, Time, Properties)
     local Success, Result = pcall(function()
-        return TweenService:Create(
-            Object,
-            TweenInfo.new(
-                Time,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            Properties
-        )
+        return TweenService:Create(Object, TweenInfo.new(Time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), Properties)
     end)
-
-    if Success and Result then
-        Result:Play()
-    end
+    if Success and Result then Result:Play() end
 end
 
 local function Corner(Object, Radius)
     local C = Instance.new("UICorner")
-
     C.CornerRadius = UDim.new(0, Radius)
     C.Parent = Object
-
     return C
 end
 
 local function Stroke(Object, Color, Transparency, Thickness)
     local S = Instance.new("UIStroke")
-
     S.Color = Color
     S.Transparency = Transparency or 0
     S.Thickness = Thickness or 1
-
     S.Parent = Object
-
     return S
+end
+
+local function HasIcon(Value)
+    return typeof(Value) == "string" and Value ~= "" and Value ~= "rbxassetid://0"
 end
 
 --==================================================
@@ -107,83 +85,50 @@ end
 --==================================================
 
 local Loading = Instance.new("Frame")
-
 Loading.Name = "Loading"
 Loading.Size = UDim2.fromScale(1, 1)
 Loading.Position = UDim2.fromScale(0, 0)
-
 Loading.BackgroundColor3 = Config.Black
 Loading.BackgroundTransparency = 0.08
-
 Loading.BorderSizePixel = 0
 Loading.ZIndex = 1000
-
 Loading.Parent = Gui
 
--- Orange tint
-
 local LoadingTint = Instance.new("Frame")
-
 LoadingTint.Size = UDim2.fromScale(1, 1)
-
 LoadingTint.BackgroundColor3 = Config.Orange
 LoadingTint.BackgroundTransparency = 0.96
-
 LoadingTint.BorderSizePixel = 0
 LoadingTint.ZIndex = 1001
-
 LoadingTint.Parent = Loading
 
--- Loading title
-
 local LoadingTitle = Instance.new("TextLabel")
-
 LoadingTitle.Size = UDim2.new(1, 0, 0, 50)
 LoadingTitle.Position = UDim2.new(0, 0, 0.5, -35)
-
 LoadingTitle.BackgroundTransparency = 1
-
 LoadingTitle.Text = "LOADING LANTERNVAPE.."
-
 LoadingTitle.TextColor3 = Config.Orange
 LoadingTitle.TextSize = 25
 LoadingTitle.Font = Enum.Font.GothamBold
-
 LoadingTitle.ZIndex = 1002
-
 LoadingTitle.Parent = Loading
 
--- Loading bar background
-
 local LoadingBarBackground = Instance.new("Frame")
-
 LoadingBarBackground.Size = UDim2.fromOffset(240, 4)
-
 LoadingBarBackground.AnchorPoint = Vector2.new(0.5, 0)
 LoadingBarBackground.Position = UDim2.new(0.5, 0, 0.5, 25)
-
 LoadingBarBackground.BackgroundColor3 = Config.Darker
 LoadingBarBackground.BorderSizePixel = 0
-
 LoadingBarBackground.ZIndex = 1002
-
 LoadingBarBackground.Parent = Loading
-
 Corner(LoadingBarBackground, 10)
 
--- Loading bar
-
 local LoadingBar = Instance.new("Frame")
-
 LoadingBar.Size = UDim2.new(0, 0, 1, 0)
-
 LoadingBar.BackgroundColor3 = Config.Orange
 LoadingBar.BorderSizePixel = 0
-
 LoadingBar.ZIndex = 1003
-
 LoadingBar.Parent = Loading
-
 Corner(LoadingBar, 10)
 
 --==================================================
@@ -191,347 +136,227 @@ Corner(LoadingBar, 10)
 --==================================================
 
 local Main = Instance.new("Frame")
-
 Main.Name = "Main"
-
 Main.Size = UDim2.new(1, -30, 1, -30)
 Main.Position = UDim2.fromOffset(15, 15)
-
 Main.BackgroundTransparency = 1
-
 Main.Visible = false
-
 Main.Parent = Gui
 
--- Scale is used instead of changing column count
-
 local UIScale = Instance.new("UIScale")
-
 UIScale.Scale = 1
-
 UIScale.Parent = Main
 
 --==================================================
--- BRAND
+-- HEADER
 --==================================================
 
 local Brand = Instance.new("TextLabel")
-
 Brand.Name = "Brand"
-
 Brand.Size = UDim2.fromOffset(190, 42)
 Brand.Position = UDim2.fromOffset(4, 4)
-
 Brand.BackgroundColor3 = Config.Black
 Brand.BackgroundTransparency = 0.05
-
 Brand.BorderSizePixel = 0
-
 Brand.Text = Config.Name
-
 Brand.TextColor3 = Config.White
 Brand.TextSize = 18
 Brand.Font = Enum.Font.GothamBold
-
 Brand.TextXAlignment = Enum.TextXAlignment.Left
-
 Brand.Parent = Main
-
 Corner(Brand, 5)
 
 local BrandPadding = Instance.new("UIPadding")
-
 BrandPadding.PaddingLeft = UDim.new(0, 14)
-
 BrandPadding.Parent = Brand
 
 local BrandAccent = Instance.new("Frame")
-
 BrandAccent.Size = UDim2.new(1, 0, 0, 2)
 BrandAccent.Position = UDim2.new(0, 0, 1, -2)
-
 BrandAccent.BackgroundColor3 = Config.Orange
 BrandAccent.BorderSizePixel = 0
-
 BrandAccent.Parent = Brand
 
---==================================================
--- MENU BUTTON
---==================================================
-
-local MenuButton = Instance.new("TextButton")
-
+local MenuButton = Instance.new("ImageButton")
 MenuButton.Name = "MenuButton"
-
 MenuButton.Size = UDim2.fromOffset(42, 42)
 MenuButton.Position = UDim2.fromOffset(202, 4)
-
 MenuButton.BackgroundColor3 = Config.Black
 MenuButton.BackgroundTransparency = 0.05
-
 MenuButton.BorderSizePixel = 0
-
-MenuButton.Text = "☰"
-
-MenuButton.TextColor3 = Config.White
-MenuButton.TextSize = 19
-MenuButton.Font = Enum.Font.GothamBold
-
 MenuButton.AutoButtonColor = false
-
 MenuButton.Parent = Main
-
 Corner(MenuButton, 5)
 
---==================================================
--- SEARCH
---==================================================
+local MenuFallback = Instance.new("TextLabel")
+MenuFallback.Size = UDim2.fromScale(1, 1)
+MenuFallback.BackgroundTransparency = 1
+MenuFallback.Text = "☰"
+MenuFallback.TextColor3 = Config.White
+MenuFallback.TextSize = 19
+MenuFallback.Font = Enum.Font.GothamBold
+MenuFallback.Parent = MenuButton
+if HasIcon(Config.MenuIcon) then
+    MenuButton.Image = Config.MenuIcon
+    MenuFallback.Visible = false
+end
 
 local Search = Instance.new("TextBox")
-
 Search.Name = "Search"
-
 Search.Size = UDim2.fromOffset(230, 34)
-
 Search.AnchorPoint = Vector2.new(0.5, 0)
-
 Search.Position = UDim2.new(0.5, 0, 0, 8)
-
 Search.BackgroundColor3 = Config.Black
 Search.BackgroundTransparency = 0.05
-
 Search.BorderSizePixel = 0
-
-Search.PlaceholderText = "Search..."
+Search.PlaceholderText = "Search.."
 Search.PlaceholderColor3 = Color3.fromRGB(110, 110, 110)
-
 Search.Text = ""
-
 Search.TextColor3 = Config.White
 Search.TextSize = 13
 Search.Font = Enum.Font.Gotham
-
 Search.ClearTextOnFocus = false
-
 Search.Parent = Main
-
 Corner(Search, 5)
-
-Stroke(
-    Search,
-    Config.Orange,
-    0.8,
-    1
-)
+Stroke(Search, Config.Orange, 0.8, 1)
 
 local SearchPadding = Instance.new("UIPadding")
-
-SearchPadding.PaddingLeft = UDim.new(0, 12)
-
+SearchPadding.PaddingLeft = UDim.new(0, 38)
 SearchPadding.Parent = Search
 
---==================================================
--- CLOSE
---==================================================
+local SearchIcon = Instance.new("ImageLabel")
+SearchIcon.Size = UDim2.fromOffset(17, 17)
+SearchIcon.Position = UDim2.fromOffset(11, 8)
+SearchIcon.BackgroundTransparency = 1
+SearchIcon.ImageColor3 = Config.Gray
+SearchIcon.Parent = Search
 
-local CloseButton = Instance.new("TextButton")
+local SearchFallback = Instance.new("TextLabel")
+SearchFallback.Size = UDim2.fromOffset(20, 20)
+SearchFallback.Position = UDim2.fromOffset(9, 7)
+SearchFallback.BackgroundTransparency = 1
+SearchFallback.Text = "⌕"
+SearchFallback.TextColor3 = Config.Gray
+SearchFallback.TextSize = 18
+SearchFallback.Font = Enum.Font.Gotham
+SearchFallback.Parent = Search
+if HasIcon(Config.SearchIcon) then
+    SearchIcon.Image = Config.SearchIcon
+    SearchFallback.Visible = false
+else
+    SearchIcon.Visible = false
+end
 
+local CloseButton = Instance.new("ImageButton")
 CloseButton.Name = "Close"
-
 CloseButton.Size = UDim2.fromOffset(42, 42)
-
 CloseButton.Position = UDim2.new(1, -46, 0, 4)
-
 CloseButton.BackgroundColor3 = Config.Black
 CloseButton.BackgroundTransparency = 0.05
-
 CloseButton.BorderSizePixel = 0
-
-CloseButton.Text = "×"
-
-CloseButton.TextColor3 = Config.White
-CloseButton.TextSize = 25
-CloseButton.Font = Enum.Font.Gotham
-
 CloseButton.AutoButtonColor = false
-
 CloseButton.Parent = Main
-
 Corner(CloseButton, 5)
 
---==================================================
--- VERSION
---==================================================
+local CloseFallback = Instance.new("TextLabel")
+CloseFallback.Size = UDim2.fromScale(1, 1)
+CloseFallback.BackgroundTransparency = 1
+CloseFallback.Text = "×"
+CloseFallback.TextColor3 = Config.White
+CloseFallback.TextSize = 25
+CloseFallback.Font = Enum.Font.Gotham
+CloseFallback.Parent = CloseButton
+if HasIcon(Config.CloseIcon) then
+    CloseButton.Image = Config.CloseIcon
+    CloseFallback.Visible = false
+end
 
 local Version = Instance.new("TextLabel")
-
 Version.Size = UDim2.fromOffset(90, 42)
-
 Version.Position = UDim2.new(1, -142, 0, 4)
-
 Version.BackgroundTransparency = 1
-
 Version.Text = "v" .. Config.Version
-
 Version.TextColor3 = Config.Gray
 Version.TextSize = 12
 Version.Font = Enum.Font.Gotham
-
 Version.TextXAlignment = Enum.TextXAlignment.Right
-
 Version.Parent = Main
 
 --==================================================
--- CONTENT
+-- CONTENT / FIVE COLUMNS
 --==================================================
 
 local Content = Instance.new("ScrollingFrame")
-
 Content.Name = "Categories"
-
 Content.Size = UDim2.new(1, -8, 1, -62)
-
 Content.Position = UDim2.fromOffset(4, 58)
-
 Content.BackgroundTransparency = 1
-
 Content.BorderSizePixel = 0
-
 Content.ScrollBarThickness = 3
-
 Content.ScrollBarImageColor3 = Config.Orange
-
 Content.CanvasSize = UDim2.new(0, 0, 0, 0)
-
 Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
 Content.ScrollingDirection = Enum.ScrollingDirection.Y
-
 Content.Parent = Main
 
---==================================================
--- GRID
---==================================================
-
 local Grid = Instance.new("UIGridLayout")
-
 Grid.CellPadding = UDim2.fromOffset(7, 7)
-
--- ALWAYS FIVE COLUMNS
-
 Grid.CellSize = UDim2.new(0.2, -7, 0, 115)
-
 Grid.FillDirection = Enum.FillDirection.Horizontal
-
 Grid.FillDirectionMaxCells = 5
-
 Grid.SortOrder = Enum.SortOrder.LayoutOrder
-
 Grid.Parent = Content
 
---==================================================
--- CATEGORIES
---==================================================
-
-local Categories = {
-    "Combat",
-    "Blatant",
-    "External",
-    "Rendering",
-    "Extra"
-}
-
+local Categories = {"Combat", "Blatant", "External", "Rendering", "Extra"}
 local CategoryPanels = {}
+local CategoryAccents = {}
 
 local function CreateCategory(Name, Order)
-
     local Panel = Instance.new("Frame")
-
     Panel.Name = Name
-
     Panel.LayoutOrder = Order
-
     Panel.BackgroundColor3 = Config.Black
     Panel.BackgroundTransparency = 0.12
-
     Panel.BorderSizePixel = 0
-
     Panel.Parent = Content
-
     Corner(Panel, 5)
-
-    Stroke(
-        Panel,
-        Config.Orange,
-        0.88,
-        1
-    )
-
-    -- Header
+    Stroke(Panel, Config.Orange, 0.88, 1)
 
     local Header = Instance.new("TextLabel")
-
     Header.Name = "Header"
-
     Header.Size = UDim2.new(1, 0, 0, 42)
-
     Header.BackgroundColor3 = Config.Black
     Header.BackgroundTransparency = 0.02
-
     Header.BorderSizePixel = 0
-
     Header.Text = Name
-
     Header.TextColor3 = Config.White
-
     Header.TextSize = 16
-
     Header.Font = Enum.Font.GothamBold
-
     Header.TextXAlignment = Enum.TextXAlignment.Left
-
     Header.Parent = Panel
-
     Corner(Header, 5)
 
     local Padding = Instance.new("UIPadding")
-
     Padding.PaddingLeft = UDim.new(0, 14)
-
     Padding.Parent = Header
 
-    -- Accent
-
     local Accent = Instance.new("Frame")
-
     Accent.Size = UDim2.new(1, 0, 0, 2)
-
     Accent.Position = UDim2.new(0, 0, 1, -2)
-
     Accent.BackgroundColor3 = Config.Orange
-
     Accent.BackgroundTransparency = 0.15
-
     Accent.BorderSizePixel = 0
-
     Accent.Parent = Header
-
-    -- Module area
+    CategoryAccents[Name] = Accent
 
     local Modules = Instance.new("Frame")
-
     Modules.Name = "Modules"
-
     Modules.Size = UDim2.new(1, 0, 1, -42)
-
     Modules.Position = UDim2.fromOffset(0, 42)
-
     Modules.BackgroundTransparency = 1
-
     Modules.Parent = Panel
 
     CategoryPanels[Name] = Panel
-
 end
 
 for Index, Name in ipairs(Categories) do
@@ -543,190 +368,408 @@ end
 --==================================================
 
 local SideMenu = Instance.new("Frame")
-
 SideMenu.Name = "SideMenu"
-
-SideMenu.Size = UDim2.fromOffset(190, 330)
-
+SideMenu.Size = UDim2.fromOffset(245, 390)
 SideMenu.Position = UDim2.fromOffset(10, 58)
-
 SideMenu.BackgroundColor3 = Config.Black
 SideMenu.BackgroundTransparency = 0.02
-
 SideMenu.BorderSizePixel = 0
-
 SideMenu.Visible = false
-
 SideMenu.ZIndex = 50
-
 SideMenu.Parent = Main
+Corner(SideMenu, 7)
+local SideMenuStroke = Stroke(SideMenu, Config.Orange, 0.55, 1)
 
-Corner(SideMenu, 6)
-
-Stroke(
-    SideMenu,
-    Config.Orange,
-    0.65,
-    1
-)
-
--- Header
-
-local SideHeader = Instance.new("TextLabel")
-
-SideHeader.Size = UDim2.new(1, 0, 0, 50)
-
+local SideHeader = Instance.new("Frame")
+SideHeader.Size = UDim2.new(1, 0, 0, 58)
 SideHeader.BackgroundColor3 = Config.Darker
-
 SideHeader.BorderSizePixel = 0
-
-SideHeader.Text = "LanternVape"
-
-SideHeader.TextColor3 = Config.White
-
-SideHeader.TextSize = 17
-
-SideHeader.Font = Enum.Font.GothamBold
-
 SideHeader.ZIndex = 51
-
 SideHeader.Parent = SideMenu
+Corner(SideHeader, 7)
 
-Corner(SideHeader, 6)
+local SideTitle = Instance.new("TextLabel")
+SideTitle.Size = UDim2.new(1, -20, 0, 26)
+SideTitle.Position = UDim2.fromOffset(14, 8)
+SideTitle.BackgroundTransparency = 1
+SideTitle.Text = "LanternVape"
+SideTitle.TextColor3 = Config.White
+SideTitle.TextSize = 17
+SideTitle.Font = Enum.Font.GothamBold
+SideTitle.TextXAlignment = Enum.TextXAlignment.Left
+SideTitle.ZIndex = 52
+SideTitle.Parent = SideHeader
 
--- Accent
+local SideSubtitle = Instance.new("TextLabel")
+SideSubtitle.Size = UDim2.new(1, -20, 0, 18)
+SideSubtitle.Position = UDim2.fromOffset(14, 33)
+SideSubtitle.BackgroundTransparency = 1
+SideSubtitle.Text = "Control Panel"
+SideSubtitle.TextColor3 = Config.Gray
+SideSubtitle.TextSize = 11
+SideSubtitle.Font = Enum.Font.Gotham
+SideSubtitle.TextXAlignment = Enum.TextXAlignment.Left
+SideSubtitle.ZIndex = 52
+SideSubtitle.Parent = SideHeader
 
 local SideAccent = Instance.new("Frame")
-
-SideAccent.Size = UDim2.new(1, 0, 0, 2)
-
-SideAccent.Position = UDim2.new(0, 0, 1, -2)
-
+SideAccent.Size = UDim2.new(1, -20, 0, 2)
+SideAccent.Position = UDim2.new(0, 10, 1, -2)
 SideAccent.BackgroundColor3 = Config.Orange
-
 SideAccent.BorderSizePixel = 0
-
-SideAccent.ZIndex = 52
-
+SideAccent.ZIndex = 53
 SideAccent.Parent = SideHeader
 
--- List
-
 local MenuList = Instance.new("UIListLayout")
-
-MenuList.Padding = UDim.new(0, 4)
-
+MenuList.Padding = UDim.new(0, 5)
 MenuList.SortOrder = Enum.SortOrder.LayoutOrder
-
 MenuList.Parent = SideMenu
 
 local MenuPadding = Instance.new("UIPadding")
-
-MenuPadding.PaddingTop = UDim.new(0, 55)
-
-MenuPadding.PaddingLeft = UDim.new(0, 5)
-
-MenuPadding.PaddingRight = UDim.new(0, 5)
-
+MenuPadding.PaddingTop = UDim.new(0, 67)
+MenuPadding.PaddingLeft = UDim.new(0, 7)
+MenuPadding.PaddingRight = UDim.new(0, 7)
 MenuPadding.Parent = SideMenu
 
 local MenuItems = {
-    {"⚙", "Settings"},
-    {"♙", "Profiles"},
-    {"◎", "Targets"},
-    {"◆", "Themes"},
-    {"⌨", "Keybinds"},
-    {"?", "About"}
+    {"⚙", "Settings", Config.SettingsIcon},
+    {"♙", "Profiles", Config.ProfilesIcon},
+    {"◎", "Targets", Config.TargetsIcon},
+    {"◆", "Themes", Config.ThemesIcon},
+    {"⌨", "Keybinds", Config.KeybindsIcon},
+    {"?", "About", Config.AboutIcon}
 }
 
+local MenuButtons = {}
+
 for Index, Data in ipairs(MenuItems) do
-
     local Button = Instance.new("TextButton")
-
     Button.Name = Data[2]
-
-    Button.Size = UDim2.new(1, 0, 0, 38)
-
+    Button.Size = UDim2.new(1, 0, 0, 42)
     Button.BackgroundColor3 = Config.Darker
-
     Button.BorderSizePixel = 0
-
     Button.Text = ""
-
     Button.AutoButtonColor = false
-
     Button.LayoutOrder = Index
-
     Button.ZIndex = 51
-
     Button.Parent = SideMenu
+    Corner(Button, 5)
 
-    Corner(Button, 4)
-
-    local Icon = Instance.new("TextLabel")
-
-    Icon.Size = UDim2.fromOffset(38, 38)
-
+    local Icon = Instance.new("ImageLabel")
+    Icon.Size = UDim2.fromOffset(19, 19)
+    Icon.Position = UDim2.fromOffset(12, 11)
     Icon.BackgroundTransparency = 1
-
-    Icon.Text = Data[1]
-
-    Icon.TextColor3 = Config.Orange
-
-    Icon.TextSize = 16
-
-    Icon.Font = Enum.Font.GothamBold
-
+    Icon.ImageColor3 = Config.Orange
     Icon.ZIndex = 52
-
     Icon.Parent = Button
 
+    local IconFallback = Instance.new("TextLabel")
+    IconFallback.Size = UDim2.fromOffset(22, 22)
+    IconFallback.Position = UDim2.fromOffset(10, 10)
+    IconFallback.BackgroundTransparency = 1
+    IconFallback.Text = Data[1]
+    IconFallback.TextColor3 = Config.Orange
+    IconFallback.TextSize = 16
+    IconFallback.Font = Enum.Font.GothamBold
+    IconFallback.ZIndex = 52
+    IconFallback.Parent = Button
+
+    if HasIcon(Data[3]) then
+        Icon.Image = Data[3]
+        IconFallback.Visible = false
+    else
+        Icon.Visible = false
+    end
+
     local Text = Instance.new("TextLabel")
-
-    Text.Size = UDim2.new(1, -45, 1, 0)
-
-    Text.Position = UDim2.fromOffset(42, 0)
-
+    Text.Size = UDim2.new(1, -55, 1, 0)
+    Text.Position = UDim2.fromOffset(45, 0)
     Text.BackgroundTransparency = 1
-
     Text.Text = Data[2]
-
     Text.TextColor3 = Config.White
-
     Text.TextSize = 13
-
     Text.Font = Enum.Font.GothamSemibold
-
     Text.TextXAlignment = Enum.TextXAlignment.Left
-
     Text.ZIndex = 52
-
     Text.Parent = Button
 
+    MenuButtons[Data[2]] = Button
+
     Button.MouseEnter:Connect(function()
-
-        Tween(
-            Button,
-            0.12,
-            {
-                BackgroundColor3 = Config.OrangeDark
-            }
-        )
-
+        Tween(Button, 0.12, {BackgroundColor3 = Config.OrangeDark})
     end)
-
     Button.MouseLeave:Connect(function()
-
-        Tween(
-            Button,
-            0.12,
-            {
-                BackgroundColor3 = Config.Darker
-            }
-        )
-
+        Tween(Button, 0.12, {BackgroundColor3 = Config.Darker})
     end)
+end
 
+--==================================================
+-- SETTINGS / THEMES
+--==================================================
+
+local CategoryEnabled = {
+    Combat = true,
+    Blatant = true,
+    External = true,
+    Rendering = true,
+    Extra = true
+}
+
+local SettingsPanel = Instance.new("Frame")
+SettingsPanel.Name = "SettingsPanel"
+SettingsPanel.Size = UDim2.fromOffset(360, 390)
+SettingsPanel.Position = UDim2.fromOffset(263, 58)
+SettingsPanel.BackgroundColor3 = Config.Black
+SettingsPanel.BackgroundTransparency = 0.02
+SettingsPanel.BorderSizePixel = 0
+SettingsPanel.Visible = false
+SettingsPanel.ZIndex = 80
+SettingsPanel.Parent = Main
+Corner(SettingsPanel, 7)
+Stroke(SettingsPanel, Config.Orange, 0.55, 1)
+
+local SettingsTitle = Instance.new("TextLabel")
+SettingsTitle.Size = UDim2.new(1, -30, 0, 35)
+SettingsTitle.Position = UDim2.fromOffset(15, 10)
+SettingsTitle.BackgroundTransparency = 1
+SettingsTitle.Text = "Settings"
+SettingsTitle.TextColor3 = Config.White
+SettingsTitle.TextSize = 18
+SettingsTitle.Font = Enum.Font.GothamBold
+SettingsTitle.TextXAlignment = Enum.TextXAlignment.Left
+SettingsTitle.ZIndex = 81
+SettingsTitle.Parent = SettingsPanel
+
+local SettingsSub = Instance.new("TextLabel")
+SettingsSub.Size = UDim2.new(1, -30, 0, 22)
+SettingsSub.Position = UDim2.fromOffset(15, 40)
+SettingsSub.BackgroundTransparency = 1
+SettingsSub.Text = "Choose which categories are visible"
+SettingsSub.TextColor3 = Config.Gray
+SettingsSub.TextSize = 11
+SettingsSub.Font = Enum.Font.Gotham
+SettingsSub.TextXAlignment = Enum.TextXAlignment.Left
+SettingsSub.ZIndex = 81
+SettingsSub.Parent = SettingsPanel
+
+local SettingsList = Instance.new("UIListLayout")
+SettingsList.Padding = UDim.new(0, 5)
+SettingsList.SortOrder = Enum.SortOrder.LayoutOrder
+SettingsList.Parent = SettingsPanel
+
+local SettingsPadding = Instance.new("UIPadding")
+SettingsPadding.PaddingTop = UDim.new(0, 70)
+SettingsPadding.PaddingLeft = UDim.new(0, 12)
+SettingsPadding.PaddingRight = UDim.new(0, 12)
+SettingsPadding.Parent = SettingsPanel
+
+local function CreateToggle(parent, TextValue, order, initial, callback)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(1, 0, 0, 36)
+    Button.BackgroundColor3 = Config.Darker
+    Button.BorderSizePixel = 0
+    Button.Text = ""
+    Button.AutoButtonColor = false
+    Button.LayoutOrder = order
+    Button.ZIndex = 82
+    Button.Parent = parent
+    Corner(Button, 5)
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -65, 1, 0)
+    Label.Position = UDim2.fromOffset(12, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = TextValue
+    Label.TextColor3 = Config.White
+    Label.TextSize = 12
+    Label.Font = Enum.Font.GothamSemibold
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.ZIndex = 83
+    Label.Parent = Button
+
+    local Switch = Instance.new("Frame")
+    Switch.Size = UDim2.fromOffset(34, 18)
+    Switch.Position = UDim2.new(1, -47, 0.5, -9)
+    Switch.BorderSizePixel = 0
+    Switch.ZIndex = 83
+    Switch.Parent = Button
+    Corner(Switch, 20)
+
+    local Knob = Instance.new("Frame")
+    Knob.Size = UDim2.fromOffset(14, 14)
+    Knob.BorderSizePixel = 0
+    Knob.ZIndex = 84
+    Knob.Parent = Switch
+    Corner(Knob, 20)
+
+    local state = initial
+    local function render()
+        Switch.BackgroundColor3 = state and Config.Orange or Config.Darker
+        Knob.BackgroundColor3 = Config.White
+        Knob.Position = state and UDim2.fromOffset(18, 2) or UDim2.fromOffset(2, 2)
+    end
+    render()
+
+    Button.MouseButton1Click:Connect(function()
+        state = not state
+        render()
+        callback(state)
+    end)
+end
+
+for Index, Name in ipairs(Categories) do
+    CreateToggle(SettingsPanel, "Show " .. Name, Index, true, function(enabled)
+        CategoryEnabled[Name] = enabled
+        CategoryPanels[Name].Visible = enabled
+    end)
+end
+
+CreateToggle(SettingsPanel, "Show LanternVape button", #Categories + 1, true, function(enabled)
+    MobileToggle.Visible = enabled and UserInputService.TouchEnabled
+end)
+
+local ThemesPanel = Instance.new("Frame")
+ThemesPanel.Name = "ThemesPanel"
+ThemesPanel.Size = UDim2.fromOffset(360, 250)
+ThemesPanel.Position = UDim2.fromOffset(263, 58)
+ThemesPanel.BackgroundColor3 = Config.Black
+ThemesPanel.BackgroundTransparency = 0.02
+ThemesPanel.BorderSizePixel = 0
+ThemesPanel.Visible = false
+ThemesPanel.ZIndex = 80
+ThemesPanel.Parent = Main
+Corner(ThemesPanel, 7)
+Stroke(ThemesPanel, Config.Orange, 0.55, 1)
+
+local ThemesTitle = Instance.new("TextLabel")
+ThemesTitle.Size = UDim2.new(1, -30, 0, 35)
+ThemesTitle.Position = UDim2.fromOffset(15, 10)
+ThemesTitle.BackgroundTransparency = 1
+ThemesTitle.Text = "Themes"
+ThemesTitle.TextColor3 = Config.White
+ThemesTitle.TextSize = 18
+ThemesTitle.Font = Enum.Font.GothamBold
+ThemesTitle.TextXAlignment = Enum.TextXAlignment.Left
+ThemesTitle.ZIndex = 81
+ThemesTitle.Parent = ThemesPanel
+
+local ThemesSub = Instance.new("TextLabel")
+ThemesSub.Size = UDim2.new(1, -30, 0, 22)
+ThemesSub.Position = UDim2.fromOffset(15, 40)
+ThemesSub.BackgroundTransparency = 1
+ThemesSub.Text = "Choose an accent color"
+ThemesSub.TextColor3 = Config.Gray
+ThemesSub.TextSize = 11
+ThemesSub.Font = Enum.Font.Gotham
+ThemesSub.TextXAlignment = Enum.TextXAlignment.Left
+ThemesSub.ZIndex = 81
+ThemesSub.Parent = ThemesPanel
+
+local ThemeGrid = Instance.new("UIGridLayout")
+ThemeGrid.CellSize = UDim2.fromOffset(105, 38)
+ThemeGrid.CellPadding = UDim2.fromOffset(7, 7)
+ThemeGrid.Parent = ThemesPanel
+
+local ThemePadding = Instance.new("UIPadding")
+ThemePadding.PaddingTop = UDim.new(0, 72)
+ThemePadding.PaddingLeft = UDim.new(0, 12)
+ThemePadding.PaddingRight = UDim.new(0, 12)
+ThemePadding.Parent = ThemesPanel
+
+local ThemeColors = {
+    Orange = Color3.fromRGB(220, 115, 35),
+    Purple = Color3.fromRGB(150, 85, 220),
+    Blue = Color3.fromRGB(70, 135, 235),
+    Green = Color3.fromRGB(70, 190, 110),
+    Red = Color3.fromRGB(220, 65, 65),
+    Pink = Color3.fromRGB(220, 85, 155)
+}
+
+local function ApplyTheme(Color)
+    Config.Orange = Color
+    Config.OrangeDark = Color:Lerp(Color3.new(0, 0, 0), 0.35)
+
+    LoadingTint.BackgroundColor3 = Color
+    LoadingTitle.TextColor3 = Color
+    LoadingBar.BackgroundColor3 = Color
+    BrandAccent.BackgroundColor3 = Color
+    SideAccent.BackgroundColor3 = Color
+    MobileToggle:FindFirstChildOfClass("UIStroke").Color = Color
+    SearchIcon.ImageColor3 = Color
+
+    for _, Accent in pairs(CategoryAccents) do
+        Accent.BackgroundColor3 = Color
+    end
+
+    for _, Panel in pairs(CategoryPanels) do
+        local S = Panel:FindFirstChildOfClass("UIStroke")
+        if S then S.Color = Color end
+    end
+
+    if SideMenuStroke then SideMenuStroke.Color = Color end
+    for _, Button in pairs(MenuButtons) do
+        local Image = Button:FindFirstChildOfClass("ImageLabel")
+        local Fallback = Button:FindFirstChildWhichIsA("TextLabel")
+        if Image then Image.ImageColor3 = Color end
+        if Fallback then Fallback.TextColor3 = Color end
+    end
+end
+
+for Name, Color in pairs(ThemeColors) do
+    local Button = Instance.new("TextButton")
+    Button.Name = Name
+    Button.BackgroundColor3 = Config.Darker
+    Button.BorderSizePixel = 0
+    Button.Text = Name
+    Button.TextColor3 = Config.White
+    Button.TextSize = 12
+    Button.Font = Enum.Font.GothamSemibold
+    Button.AutoButtonColor = false
+    Button.ZIndex = 82
+    Button.Parent = ThemesPanel
+    Corner(Button, 5)
+
+    local Dot = Instance.new("Frame")
+    Dot.Size = UDim2.fromOffset(10, 10)
+    Dot.Position = UDim2.fromOffset(9, 14)
+    Dot.BackgroundColor3 = Color
+    Dot.BorderSizePixel = 0
+    Dot.ZIndex = 83
+    Dot.Parent = Button
+    Corner(Dot, 20)
+
+    local Pad = Instance.new("UIPadding")
+    Pad.PaddingRight = UDim.new(0, 9)
+    Pad.Parent = Button
+    Button.TextXAlignment = Enum.TextXAlignment.Right
+
+    Button.MouseButton1Click:Connect(function()
+        ApplyTheme(Color)
+    end)
+end
+
+local function CloseExtraPanels()
+    SettingsPanel.Visible = false
+    ThemesPanel.Visible = false
+end
+
+MenuButtons.Settings.MouseButton1Click:Connect(function()
+    SettingsPanel.Visible = not SettingsPanel.Visible
+    ThemesPanel.Visible = false
+end)
+
+MenuButtons.Themes.MouseButton1Click:Connect(function()
+    ThemesPanel.Visible = not ThemesPanel.Visible
+    SettingsPanel.Visible = false
+end)
+
+for Name, Button in pairs(MenuButtons) do
+    if Name ~= "Settings" and Name ~= "Themes" then
+        Button.MouseButton1Click:Connect(function()
+            CloseExtraPanels()
+            SideMenu.Visible = false
+        end)
+    end
 end
 
 --==================================================
@@ -734,335 +777,171 @@ end
 --==================================================
 
 local MobileToggle = Instance.new("ImageButton")
-
 MobileToggle.Name = "MobileToggle"
-
-MobileToggle.Size = UDim2.fromOffset(58, 58)
-
-MobileToggle.Position = UDim2.new(0, 18, 0.5, -29)
-
+MobileToggle.Size = UDim2.fromOffset(52, 52)
+MobileToggle.AnchorPoint = Vector2.new(1, 0)
+MobileToggle.Position = UDim2.new(1, -16, 0, 16)
 MobileToggle.BackgroundColor3 = Config.Black
 MobileToggle.BackgroundTransparency = 0.08
-
 MobileToggle.BorderSizePixel = 0
-
-MobileToggle.Image = Config.Icon
-
 MobileToggle.ScaleType = Enum.ScaleType.Fit
-
 MobileToggle.Visible = false
-
 MobileToggle.ZIndex = 200
-
 MobileToggle.Parent = Gui
-
 Corner(MobileToggle, 12)
+local MobileStroke = Stroke(MobileToggle, Config.Orange, 0.15, 2)
 
-Stroke(
-    MobileToggle,
-    Config.Orange,
-    0.15,
-    2
-)
-
-local ToggleFallback = Instance.new("TextLabel")
-
-ToggleFallback.Size = UDim2.fromScale(1, 1)
-
-ToggleFallback.BackgroundTransparency = 1
-
-ToggleFallback.Text = "LV"
-
-ToggleFallback.TextColor3 = Config.Orange
-
-ToggleFallback.TextSize = 18
-
-ToggleFallback.Font = Enum.Font.GothamBold
-
-ToggleFallback.ZIndex = 201
-
-ToggleFallback.Parent = MobileToggle
-
-if Config.Icon ~= "rbxassetid://0" then
-    ToggleFallback.Visible = false
+if HasIcon(Config.Icon) then
+    MobileToggle.Image = Config.Icon
+else
+    local ToggleFallback = Instance.new("TextLabel")
+    ToggleFallback.Size = UDim2.fromScale(1, 1)
+    ToggleFallback.BackgroundTransparency = 1
+    ToggleFallback.Text = "LV"
+    ToggleFallback.TextColor3 = Config.Orange
+    ToggleFallback.TextSize = 18
+    ToggleFallback.Font = Enum.Font.GothamBold
+    ToggleFallback.ZIndex = 201
+    ToggleFallback.Parent = MobileToggle
 end
 
 --==================================================
--- TOGGLE
+-- TOGGLE / SEARCH / DRAG
 --==================================================
 
 local function ToggleMain()
-
     Main.Visible = not Main.Visible
-
     if not Main.Visible then
         SideMenu.Visible = false
+        CloseExtraPanels()
     end
-
 end
 
 MenuButton.MouseButton1Click:Connect(function()
-
     SideMenu.Visible = not SideMenu.Visible
-
+    if not SideMenu.Visible then CloseExtraPanels() end
 end)
 
 CloseButton.MouseButton1Click:Connect(function()
-
     Main.Visible = false
     SideMenu.Visible = false
-
+    CloseExtraPanels()
 end)
 
-MobileToggle.MouseButton1Click:Connect(function()
-
-    ToggleMain()
-
-end)
-
---==================================================
--- SHIFT
---==================================================
+MobileToggle.MouseButton1Click:Connect(ToggleMain)
 
 UserInputService.InputBegan:Connect(function(Input, Processed)
-
-    if Processed then
-        return
-    end
-
-    if Input.KeyCode == Enum.KeyCode.LeftShift
-        or Input.KeyCode == Enum.KeyCode.RightShift then
-
+    if Processed then return end
+    if Input.KeyCode == Enum.KeyCode.LeftShift or Input.KeyCode == Enum.KeyCode.RightShift then
         ToggleMain()
-
     end
-
 end)
-
---==================================================
--- SEARCH
---==================================================
 
 Search:GetPropertyChangedSignal("Text"):Connect(function()
-
     local Query = string.lower(Search.Text)
-
     for Name, Panel in pairs(CategoryPanels) do
-
-        if Query == "" then
-
+        if not CategoryEnabled[Name] then
+            Panel.Visible = false
+        elseif Query == "" then
             Panel.Visible = true
-
         else
-
-            Panel.Visible =
-                string.find(
-                    string.lower(Name),
-                    Query,
-                    1,
-                    true
-                ) ~= nil
-
+            Panel.Visible = string.find(string.lower(Name), Query, 1, true) ~= nil
         end
-
     end
-
 end)
-
---==================================================
--- DRAGGING
---==================================================
 
 local Dragging = false
 local DragStart
 local StartPosition
 
 Brand.InputBegan:Connect(function(Input)
-
-    if Input.UserInputType == Enum.UserInputType.MouseButton1
-        or Input.UserInputType == Enum.UserInputType.Touch then
-
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
         Dragging = true
-
         DragStart = Input.Position
-
         StartPosition = Main.Position
-
     end
-
 end)
 
 UserInputService.InputEnded:Connect(function(Input)
-
-    if Input.UserInputType == Enum.UserInputType.MouseButton1
-        or Input.UserInputType == Enum.UserInputType.Touch then
-
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
         Dragging = false
-
     end
-
 end)
 
 UserInputService.InputChanged:Connect(function(Input)
-
-    if not Dragging then
-        return
-    end
-
-    if Input.UserInputType == Enum.UserInputType.MouseMovement
-        or Input.UserInputType == Enum.UserInputType.Touch then
-
+    if not Dragging then return end
+    if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
         local Delta = Input.Position - DragStart
-
-        Main.Position = UDim2.new(
-            StartPosition.X.Scale,
-            StartPosition.X.Offset + Delta.X,
-
-            StartPosition.Y.Scale,
-            StartPosition.Y.Offset + Delta.Y
-        )
-
+        Main.Position = UDim2.new(StartPosition.X.Scale, StartPosition.X.Offset + Delta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + Delta.Y)
     end
-
 end)
 
 --==================================================
--- RESPONSIVE
--- FIVE COLUMNS EVERYWHERE
+-- RESPONSIVE - FIVE COLUMNS ALWAYS
 --==================================================
 
 local Camera = workspace.CurrentCamera
 
 local function UpdateLayout()
-
     Camera = workspace.CurrentCamera or Camera
-
-    if not Camera then
-        return
-    end
-
-    -- NEVER change this on mobile
+    if not Camera then return end
 
     Grid.FillDirectionMaxCells = 5
-
-    Grid.CellSize = UDim2.new(
-        0.2,
-        -7,
-        0,
-        115
-    )
+    Grid.CellSize = UDim2.new(0.2, -7, 0, 115)
 
     local Width = Camera.ViewportSize.X
-
     if Width < 500 then
-
         UIScale.Scale = 0.55
-
     elseif Width < 650 then
-
         UIScale.Scale = 0.65
-
     elseif Width < 800 then
-
         UIScale.Scale = 0.75
-
     elseif Width < 1000 then
-
         UIScale.Scale = 0.85
-
     else
-
         UIScale.Scale = 1
-
     end
 
+    if Width < 800 then
+        MobileToggle.Size = UDim2.fromOffset(48, 48)
+        MobileToggle.Position = UDim2.new(1, -12, 0, 12)
+    else
+        MobileToggle.Size = UDim2.fromOffset(52, 52)
+        MobileToggle.Position = UDim2.new(1, -16, 0, 16)
+    end
 end
 
 UpdateLayout()
-
 if Camera then
-
-    Camera:GetPropertyChangedSignal(
-        "ViewportSize"
-    ):Connect(UpdateLayout)
-
+    Camera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateLayout)
 end
 
 --==================================================
 -- LOADING
--- IMPORTANT:
--- MAIN GUI HAS ALREADY BEEN CREATED
--- BEFORE ANY WAIT.
 --==================================================
 
-Tween(
-    LoadingBar,
-    Config.LoadingTime,
-    {
-        Size = UDim2.new(1, 0, 1, 0)
-    }
-)
+local LoadingFinished = false
 
-task.wait(Config.LoadingTime)
+local function FinishLoading()
+    if LoadingFinished then return end
+    LoadingFinished = true
 
--- Show GUI
+    Main.Visible = true
+    MobileToggle.Visible = UserInputService.TouchEnabled
 
-Main.Visible = true
+    Tween(Loading, 0.35, {BackgroundTransparency = 1})
+    Tween(LoadingTint, 0.35, {BackgroundTransparency = 1})
+    Tween(LoadingTitle, 0.35, {TextTransparency = 1})
+    Tween(LoadingBarBackground, 0.35, {BackgroundTransparency = 1})
+    Tween(LoadingBar, 0.35, {BackgroundTransparency = 1})
 
--- Mobile toggle
-
-if UserInputService.TouchEnabled then
-    MobileToggle.Visible = true
+    task.delay(0.4, function()
+        if Loading and Loading.Parent then Loading:Destroy() end
+    end)
 end
 
--- Fade loading screen
+Tween(LoadingBar, Config.LoadingTime, {Size = UDim2.new(1, 0, 1, 0)})
+task.delay(Config.LoadingTime, FinishLoading)
+task.delay(5, FinishLoading)
 
-Tween(
-    Loading,
-    0.35,
-    {
-        BackgroundTransparency = 1
-    }
-)
-
-Tween(
-    LoadingTint,
-    0.35,
-    {
-        BackgroundTransparency = 1
-    }
-)
-
-Tween(
-    LoadingTitle,
-    0.35,
-    {
-        TextTransparency = 1
-    }
-)
-
-Tween(
-    LoadingBarBackground,
-    0.35,
-    {
-        BackgroundTransparency = 1
-    }
-)
-
-Tween(
-    LoadingBar,
-    0.35,
-    {
-        BackgroundTransparency = 1
-    }
-)
-
-task.wait(0.4)
-
-if Loading and Loading.Parent then
-    Loading:Destroy()
-end
-
-print(
-    "[" .. Config.Name .. "] Loaded " .. Config.Version
-)
+print("[" .. Config.Name .. "] Loaded " .. Config.Version)
