@@ -1,105 +1,38 @@
-name: Apply LanternVape UI update
+name: Validate LanternVape UI
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  update-ui:
-    if: github.actor != 'github-actions[bot]'
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Patch main.lua
+      - name: Validate main.lua
         shell: python
         run: |
           from pathlib import Path
-          import re
-
-          p = Path('main.lua')
-          s = p.read_text(encoding='utf-8')
-          original = s
-
-          # Safe-area support without changing the full-screen loading screen.
-          s = s.replace(
-              'local TweenService = game:GetService("TweenService")\n',
-              'local TweenService = game:GetService("TweenService")\nlocal GuiService = game:GetService("GuiService")\n'
-          )
-
-          # Add category state used by the manual layout/drag system.
-          s = s.replace(
-              'local CategoryPanels = {}\nlocal CategoryAccents = {}\n',
-              'local CategoryPanels = {}\nlocal CategoryAccents = {}\nlocal CategoryMoved = {}\n'
-          )
-
-          # Make the grid a non-owning placeholder; panels are positioned manually so each one can move independently.
-          s = s.replace(
-              'Grid.FillDirectionMaxCells = 5\nGrid.SortOrder = Enum.SortOrder.LayoutOrder\nGrid.Parent = Content\n',
-              'Grid.FillDirectionMaxCells = 5\nGrid.SortOrder = Enum.SortOrder.LayoutOrder\nGrid.Parent = Content\nGrid.Enabled = false\n'
-          )
-
-          # Make category panels draggable individually by their headers.
-          marker = '    CategoryPanels[Name] = Panel\nend\n'
-          replacement = '''    CategoryPanels[Name] = Panel\n\n    Header.Active = true\n    local DraggingCategory = false\n    local DragStart = nil\n    local StartPosition = nil\n\n    Header.InputBegan:Connect(function(Input)\n        if Input.UserInputType ~= Enum.UserInputType.MouseButton1\n            and Input.UserInputType ~= Enum.UserInputType.Touch then\n            return\n        end\n\n        DraggingCategory = true\n        DragStart = Input.Position\n        StartPosition = Panel.Position\n        Panel.ZIndex = 20\n    end)\n\n    UserInputService.InputChanged:Connect(function(Input)\n        if not DraggingCategory then return end\n        if Input.UserInputType ~= Enum.UserInputType.MouseMovement\n            and Input.UserInputType ~= Enum.UserInputType.Touch then\n            return\n        end\n\n        local Delta = Input.Position - DragStart\n        Panel.Position = UDim2.new(\n            StartPosition.X.Scale,\n            StartPosition.X.Offset + Delta.X,\n            StartPosition.Y.Scale,\n            StartPosition.Y.Offset + Delta.Y\n        )\n        CategoryMoved[Name] = true\n    end)\n\n    UserInputService.InputEnded:Connect(function(Input)\n        if Input.UserInputType == Enum.UserInputType.MouseButton1\n            or Input.UserInputType == Enum.UserInputType.Touch then\n            DraggingCategory = false\n            Panel.ZIndex = 1\n        end\n    end)\nend\n'''
-          if marker not in s:
-              raise SystemExit('Category creation marker not found; refusing to modify main.lua')
-          s = s.replace(marker, replacement, 1)
-
-          # Remove whole-main dragging if present.
-          s = re.sub(
-              r'local Dragging = false\nlocal DragStart\nlocal StartPosition\n\nBrand\.InputBegan:Connect\(function\(Input\).*?end\)\n\nUserInputService\.InputEnded:Connect\(function\(Input\).*?end\)\n\nUserInputService\.InputChanged:Connect\(function\(Input\).*?end\)\n\n',
-              '', s, count=1, flags=re.S
-          )
-
-          # Add manual five-column layout and safe-area handling immediately before the responsive section.
-          responsive_marker = '--==================================================\n-- RESPONSIVE - FIVE COLUMNS ALWAYS\n--==================================================\n'
-          responsive_prefix = '''--==================================================\n-- MANUAL CATEGORY LAYOUT / SAFE AREA\n--==================================================\n\nlocal function UpdateSafeArea()\n    local TopLeft, BottomRight = GuiService:GetGuiInset()\n    local Top = TopLeft.Y\n    local Bottom = BottomRight.Y\n\n    Main.Position = UDim2.fromOffset(15, 15 + Top)\n    Main.Size = UDim2.new(1, -30, 1, -30 - Top - Bottom)\n\n    if UserInputService.TouchEnabled then\n        MobileToggle.Position = UDim2.new(1, -16, 0, 16 + Top)\n    end\nend\n\nlocal function LayoutCategories()\n    local Width = Content.AbsoluteSize.X\n    if Width <= 0 then return end\n\n    local Gap = 7\n    local Columns = 5\n    local CellWidth = math.max(1, (Width - Gap * (Columns - 1)) / Columns)\n    local CellHeight = 115\n\n    for Index, Name in ipairs(Categories) do\n        local Panel = CategoryPanels[Name]\n        if Panel and not CategoryMoved[Name] then\n            local Column = (Index - 1) % Columns\n            local Row = math.floor((Index - 1) / Columns)\n            Panel.Size = UDim2.fromOffset(CellWidth, CellHeight)\n            Panel.Position = UDim2.fromOffset(\n                Column * (CellWidth + Gap),\n                Row * (CellHeight + Gap)\n            )\n        end\n    end\n\n    local Rows = math.ceil(#Categories / Columns)\n    Content.CanvasSize = UDim2.fromOffset(0, math.max(0, Rows * (CellHeight + Gap) - Gap))\nend\n\nContent:GetPropertyChangedSignal("AbsoluteSize"):Connect(LayoutCategories)\n\n'''
-          if responsive_marker not in s:
-              raise SystemExit('Responsive marker not found; refusing to modify main.lua')
-          s = s.replace(responsive_marker, responsive_prefix + responsive_marker, 1)
-
-          # Replace the old responsive body with one that preserves five columns, scales, and safe area.
-          old_body = '''    Grid.FillDirectionMaxCells = 5\n    Grid.CellSize = UDim2.new(0.2, -7, 0, 115)\n\n    local Width = Camera.ViewportSize.X\n'''
-          new_body = '''    Grid.FillDirectionMaxCells = 5\n\n    local Width = Camera.ViewportSize.X\n'''
-          if old_body not in s:
-              raise SystemExit('Responsive grid marker not found; refusing to modify main.lua')
-          s = s.replace(old_body, new_body, 1)
-
-          # Replace automatic canvas sizing, which is tied to UIGridLayout.
-          s = s.replace('Content.AutomaticCanvasSize = Enum.AutomaticSize.Y\n', 'Content.AutomaticCanvasSize = Enum.AutomaticSize.None\n', 1)
-
-          # Add safe-area/layout calls at the end of UpdateLayout.
-          needle = '''    if Width < 800 then\n        MobileToggle.Size = UDim2.fromOffset(48, 48)\n        MobileToggle.Position = UDim2.new(1, -12, 0, 12)\n    else\n        MobileToggle.Size = UDim2.fromOffset(52, 52)\n        MobileToggle.Position = UDim2.new(1, -16, 0, 16)\n    end\nend\n'''
-          repl = '''    if Width < 800 then\n        MobileToggle.Size = UDim2.fromOffset(48, 48)\n    else\n        MobileToggle.Size = UDim2.fromOffset(52, 52)\n    end\n\n    UpdateSafeArea()\n    LayoutCategories()\nend\n'''
-          if needle not in s:
-              raise SystemExit('Mobile responsive marker not found; refusing to modify main.lua')
-          s = s.replace(needle, repl, 1)
-
-          # Global accent application for the live UI only. Loading screen is deliberately excluded.
-          theme_marker = 'local function ApplyTheme(Color)\n'
-          theme_start = s.find(theme_marker)
-          if theme_start == -1:
-              raise SystemExit('Theme function not found; refusing to modify main.lua')
-          theme_end = s.find('\nend\n\nfor Name, Color in pairs(ThemeColors)', theme_start)
-          if theme_end == -1:
-              raise SystemExit('Theme function end not found; refusing to modify main.lua')
-          theme_end += len('\nend')
-          new_theme = '''local function ApplyTheme(Color)\n    local OldAccent = Config.Orange\n    local OldDark = Config.OrangeDark\n\n    Config.Orange = Color\n    Config.OrangeDark = Color:Lerp(Color3.new(0, 0, 0), 0.35)\n\n    local function Recolor(Object)\n        if not Object or not Object.Parent then return end\n\n        pcall(function()\n            if Object:IsA("GuiObject") then\n                if Object.BackgroundColor3 == OldAccent or Object.BackgroundColor3 == OldDark then\n                    Object.BackgroundColor3 = Color\n                end\n                if Object:IsA("TextLabel") or Object:IsA("TextButton") or Object:IsA("TextBox") then\n                    if Object.TextColor3 == OldAccent or Object.TextColor3 == OldDark then\n                        Object.TextColor3 = Color\n                    end\n                end\n                if Object:IsA("ImageLabel") or Object:IsA("ImageButton") then\n                    if Object.ImageColor3 == OldAccent or Object.ImageColor3 == OldDark then\n                        Object.ImageColor3 = Color\n                    end\n                end\n            end\n            if Object:IsA("UIStroke") and (Object.Color == OldAccent or Object.Color == OldDark) then\n                Object.Color = Color\n            end\n            if Object:IsA("ScrollingFrame") and Object.ScrollBarImageColor3 == OldAccent then\n                Object.ScrollBarImageColor3 = Color\n            end\n        end)\n\n        for _, Child in ipairs(Object:GetChildren()) do\n            Recolor(Child)\n        end\n    end\n\n    Recolor(Main)\n    Recolor(MobileToggle)\nend'''
-          s = s[:theme_start] + new_theme + s[theme_end:]
-
-          if s == original:
-              raise SystemExit('No changes were made; refusing to create a no-op commit')
-
-          p.write_text(s, encoding='utf-8')
-
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add main.lua
-          git commit -m "Update LanternVape UI: safe area, themes, draggable categories" || exit 0
-          git push
+          p = Path("main.lua")
+          if not p.is_file():
+              raise SystemExit("main.lua is missing")
+          s = p.read_text(encoding="utf-8")
+          required = [
+              'Name = "LanternVape"',
+              'Version = "2.09"',
+              'LOADING LANTERNVAPE..',
+              'local SpeedEnabled = false',
+              'local Categories = {"Combat","Blatant","External","Rendering","Extra"}',
+              'MobileToggle',
+              'LeftShift',
+          ]
+          missing = [x for x in required if x not in s]
+          if missing:
+              raise SystemExit("main.lua validation failed; missing: " + ", ".join(missing))
+          print(f"Validated main.lua ({len(s)} bytes)")
