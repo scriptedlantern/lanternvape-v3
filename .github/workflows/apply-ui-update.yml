@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Patch main.lua
+      - name: Patch main.lua safely
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -26,11 +26,18 @@ jobs:
 
           p = Path("main.lua")
           s = p.read_text(encoding="utf-8")
-          original = s
-          marker = "-- LanternVape asset-backed UI update v2.12"
 
-          if marker not in s:
-              anchor = 'local function ButtonIcon(parent,asset,size,pos,z)\n'
+          # Remove the exact malformed literal tail that caused:
+          # Expected identifier when parsing expression, got '\\'
+          bad_tails = [
+              "\\n\\n-- LanternVape asset-backed UI update v2.12\\n",
+              "\n\n-- LanternVape asset-backed UI update v2.12\n",
+          ]
+          for bad in bad_tails:
+              s = s.replace(bad, "")
+
+          anchor = 'local function ButtonIcon(parent,asset,size,pos,z)\n'
+          if 'local MobileIconAsset = LoadRemoteAsset' not in s:
               helper = '''local function LoadRemoteAsset(url,name)
               local getter = getcustomasset or getsynasset
               if type(getter) ~= "function" or type(writefile) ~= "function" then
@@ -68,7 +75,7 @@ jobs:
                   raise SystemExit("Missing ButtonIcon anchor")
               s = s.replace(anchor, helper + anchor, 1)
 
-              old_title = '''local SideTitle = Instance.new("TextLabel")
+          old_title = '''local SideTitle = Instance.new("TextLabel")
           SideTitle.Size = UDim2.new(1,-20,0,26)
           SideTitle.Position = UDim2.fromOffset(14,8)
           SideTitle.BackgroundTransparency = 1
@@ -91,7 +98,7 @@ jobs:
           SideSubtitle.ZIndex = 22
           SideSubtitle.Parent = SideHeader
           '''
-              new_title = '''local SideTitle = Instance.new("ImageLabel")
+          new_title = '''local SideTitle = Instance.new("ImageLabel")
           SideTitle.Name = "LanternVapeLogo"
           SideTitle.Size = UDim2.new(1,-20,0,32)
           SideTitle.Position = UDim2.fromOffset(10,7)
@@ -102,28 +109,25 @@ jobs:
           SideTitle.ZIndex = 22
           SideTitle.Parent = SideHeader
           '''
+          if 'local SideTitle = Instance.new("TextLabel")' in s:
               if old_title not in s:
                   raise SystemExit("Missing sidebar title block")
               s = s.replace(old_title, new_title, 1)
 
-              for line in [
-                  '    SideSubtitle.Text = "Configuration"\n',
-                  '    SideSubtitle.Text = "Appearance"\n',
-                  '    SideSubtitle.Text = "Control Panel"\n',
-              ]:
-                  s = s.replace(line, "")
-
-              s = s.replace(
-                  'Mobile.Image=Config.Icon\nMobile.ImageColor3=Config.Orange',
-                  'Mobile.Image=MobileIconAsset or Config.Icon\nMobile.ImageColor3=Color3.new(1,1,1)'
-              )
-
-              s += "\\n\\n" + marker + "\\n"
-
-          s = s.replace('https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/%20mobile_icon.png', 'https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/mobile_icon.png')
           s = s.replace('SideTitle.Text = "Settings"', 'SideTitle.Image = LanternVapeTextAsset or ""')
           s = s.replace('SideTitle.Text = "Themes"', 'SideTitle.Image = LanternVapeTextAsset or ""')
           s = s.replace('SideTitle.Text = "LanternVape"', 'SideTitle.Image = LanternVapeTextAsset or ""')
+          s = s.replace('    SideSubtitle.Text = "Configuration"\n', '')
+          s = s.replace('    SideSubtitle.Text = "Appearance"\n', '')
+          s = s.replace('    SideSubtitle.Text = "Control Panel"\n', '')
+          s = s.replace(
+              'Mobile.Image=Config.Icon\nMobile.ImageColor3=Config.Orange',
+              'Mobile.Image=MobileIconAsset or Config.Icon\nMobile.ImageColor3=Color3.new(1,1,1)'
+          )
+          s = s.replace(
+              'https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/%20mobile_icon.png',
+              'https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/mobile_icon.png'
+          )
 
           p.write_text(s, encoding="utf-8")
           print("main.lua checked", len(s), "bytes")
@@ -134,13 +138,16 @@ jobs:
           set -euo pipefail
           test -f "assets/lanternvape_text.png"
           test -f "assets/mobile_icon.png"
-          grep -q 'LanternVape asset-backed UI update v2.12' main.lua
           grep -q 'assets/mobile_icon.png' main.lua
           grep -q 'assets/lanternvape_text.png' main.lua
           grep -q 'local MobileIconAsset = LoadRemoteAsset' main.lua
           grep -q 'local LanternVapeTextAsset = LoadRemoteAsset' main.lua
           grep -q 'local SideTitle = Instance.new("ImageLabel")' main.lua
           grep -q 'Mobile.Image=MobileIconAsset or Config.Icon' main.lua
+          if grep -Fq '\\n\\n-- LanternVape asset-backed UI update v2.12\\n' main.lua; then
+            echo "Malformed literal v2.12 tail remains"
+            exit 1
+          fi
           if grep -q 'SideTitle.Text' main.lua; then
             echo "SideTitle.Text remains after conversion to ImageLabel"
             exit 1
@@ -156,5 +163,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add main.lua
-          git commit -m "Use clean LanternVape mobile icon path"
+          git commit -m "Fix LanternVape UI asset patch"
           git push
