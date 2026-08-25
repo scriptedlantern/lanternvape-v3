@@ -195,41 +195,6 @@ local Scale = Instance.new("UIScale")
 Scale.Scale = .92
 Scale.Parent = Main
 
--- PAID BUILD BANNER
-local PaidBanner = Instance.new("Frame")
-PaidBanner.Name = "PaidBanner"
-PaidBanner.Size = UDim2.fromOffset(235,44)
-PaidBanner.Position = UDim2.fromOffset(4,4)
-PaidBanner.BackgroundColor3 = Config.Orange
-PaidBanner.BackgroundTransparency = .02
-PaidBanner.BorderSizePixel = 0
-PaidBanner.ZIndex = 10
-PaidBanner.Parent = Main
-Corner(PaidBanner,7)
-Stroke(PaidBanner,Config.Orange,.15,1)
-
-local PaidGradient = Instance.new("UIGradient")
-PaidGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(220,115,35)),
-    ColorSequenceKeypoint.new(.5, Color3.fromRGB(245,150,35)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,205,55))
-})
-PaidGradient.Rotation = 0
-PaidGradient.Parent = PaidBanner
-
-local PaidText = Instance.new("TextLabel")
-PaidText.Size = UDim2.fromScale(1,1)
-PaidText.BackgroundTransparency = 1
-PaidText.Text = "LANTERNVAPE PAID"
-PaidText.TextColor3 = Color3.new(1,1,1)
-PaidText.TextSize = 17
-PaidText.Font = Enum.Font.GothamBold
-PaidText.TextXAlignment = Enum.TextXAlignment.Center
-PaidText.TextYAlignment = Enum.TextYAlignment.Center
-PaidText.ZIndex = 11
-PaidText.Parent = PaidBanner
-Stroke(PaidText,Color3.fromRGB(70,35,5),.25,1.2)
-
 -- SEARCH WITH REAL IMAGE ASSET
 local Search = Instance.new("TextBox")
 Search.Size = UDim2.fromOffset(230,34)
