@@ -1,4 +1,4 @@
-name: Fix LanternVape Layout Scope
+name: Fix LanternVape UI Scope
 
 on:
   push:
@@ -16,42 +16,74 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fix Layout forward declaration
+      - name: Fix local function scopes
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           p = Path("main.lua")
           s = p.read_text(encoding="utf-8")
+
+          # BuildGuiSubSidebar is declared before the responsive Layout function.
+          # Give it the same local Layout variable that is assigned later.
           if 'local Layout\n\nlocal function BuildGuiSubSidebar()' not in s:
               marker = 'local function BuildGuiSubSidebar()'
               if marker not in s:
                   raise SystemExit("BuildGuiSubSidebar marker missing")
               s = s.replace(marker, 'local Layout\n\n' + marker, 1)
           s = s.replace('local function Layout()', 'Layout = function()', 1)
-          if 'local Layout\n\nlocal function BuildGuiSubSidebar()' not in s:
-              raise SystemExit("Layout forward declaration missing")
-          if 'Layout = function()' not in s:
-              raise SystemExit("Layout assignment missing")
+
+          # The original file already has local Settings/Themes builders. The new
+          # hierarchical builders must use distinct local names so BuildNormalSidebar
+          # does not accidentally resolve the older local functions.
+          if 'local function BuildSettingsSidebarV2()' not in s and 'function BuildSettingsSidebar()\n    SideMode = "Settings"' in s:
+              s = s.replace('function BuildSettingsSidebar()\n    SideMode = "Settings"', 'local function BuildSettingsSidebarV2()\n    SideMode = "Settings"', 1)
+          if 'local function BuildThemeSidebarV2()' not in s and 'function BuildThemeSidebar()\n    SideMode = "Themes"' in s:
+              s = s.replace('function BuildThemeSidebar()\n    SideMode = "Themes"', 'local function BuildThemeSidebarV2()\n    SideMode = "Themes"', 1)
+
+          s = s.replace('BuildSettingsSidebar(); Utility.Visible=false; Content.Visible=true', 'BuildSettingsSidebarV2(); Utility.Visible=false; Content.Visible=true', 1)
+          s = s.replace('BuildThemeSidebar(); Utility.Visible=false; Content.Visible=true', 'BuildThemeSidebarV2(); Utility.Visible=false; Content.Visible=true', 1)
+
+          required = [
+              'local Layout',
+              'Layout = function()',
+              'local function BuildSettingsSidebarV2()',
+              'local function BuildThemeSidebarV2()',
+              'BuildSettingsSidebarV2(); Utility.Visible=false; Content.Visible=true',
+              'BuildThemeSidebarV2(); Utility.Visible=false; Content.Visible=true'
+          ]
+          for item in required:
+              if item not in s:
+                  raise SystemExit("Missing: " + item)
+
           p.write_text(s, encoding="utf-8")
-          print("Layout scope fixed")
+          print("LanternVape scope fixes applied")
           PY
 
       - name: Validate
         run: |
           set -euo pipefail
+          test -f main.lua
+          test -f assets/lanternvape_text.png
+          test -f assets/mobile_icon.png
           grep -q 'local Layout' main.lua
           grep -q 'Layout = function()' main.lua
+          grep -q 'local function BuildSettingsSidebarV2()' main.lua
+          grep -q 'local function BuildThemeSidebarV2()' main.lua
+          grep -q 'local profileNames = {"Default"}' main.lua
+          if grep -q 'local Brand = Instance.new("TextLabel")' main.lua; then exit 1; fi
+          if grep -q 'SideTitle.Text' main.lua; then exit 1; fi
+          if grep -q 'Control Panel' main.lua; then exit 1; fi
 
       - name: Commit
         run: |
           set -euo pipefail
           if git diff --quiet -- main.lua; then
-            echo "No Layout changes needed"
+            echo "No scope changes needed"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add main.lua
-          git commit -m "Fix LanternVape Layout scope"
+          git commit -m "Fix LanternVape sidebar function scope"
           git push
