@@ -1,0 +1,1 @@
+Recovery complete: main.lua is restored to the pre-paid-banner working build. The automated workflow that was rewriting main.lua has been removed.
