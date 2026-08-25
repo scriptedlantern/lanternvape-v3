@@ -1050,4 +1050,4 @@ Tween(Bar,Config.LoadingTime,{Size=UDim2.new(1,0,1,0)})
 task.delay(Config.LoadingTime,FinishLoading)
 task.delay(5,FinishLoading)
 
-print("["..Config.Name.."] Loaded "..Config.Version)\n\n-- LanternVape asset-backed UI update v2.12\n
+print("["..Config.Name.."] Loaded "..Config.Version)
