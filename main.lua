@@ -938,6 +938,8 @@ local function ApplyDefaultProfile()
     end
 end
 
+local Layout
+
 local function BuildGuiSubSidebar()
     SideMode = "Settings.GUI"
     BuildSubSidebar({
@@ -1166,7 +1168,7 @@ end)
 
 -- RESPONSIVE
 local Camera=workspace.CurrentCamera
-local function Layout()
+Layout = function()
     Camera=workspace.CurrentCamera or Camera
     if not Camera then return end
     local w=Camera.ViewportSize.X
