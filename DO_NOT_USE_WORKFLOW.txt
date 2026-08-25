@@ -1,0 +1,1 @@
+The old auto-rewrite workflow is being removed. Do not restore it.
