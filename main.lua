@@ -1002,7 +1002,7 @@ local function BuildCreditsSubSidebar()
     })
 end
 
-function BuildSettingsSidebar()
+local function BuildSettingsSidebarV2()
     SideMode = "Settings"
     BuildSubSidebar({
         {"GUI", Config.SettingsIcon, BuildGuiSubSidebar},
@@ -1037,7 +1037,7 @@ local function BuildThemePresetsSubSidebar()
     BuildSubSidebar(entries)
 end
 
-function BuildThemeSidebar()
+local function BuildThemeSidebarV2()
     SideMode = "Themes"
     BuildSubSidebar({
         {"Colors", Config.ThemesIcon, BuildThemeColorsSubSidebar},
@@ -1106,9 +1106,9 @@ function BuildNormalSidebar()
         MenuButtons[d[1]] = b
         NormalMenuItems[d[1]] = b
     end
-    MenuButtons.Settings.MouseButton1Click:Connect(function() BuildSettingsSidebar(); Utility.Visible=false; Content.Visible=true end)
+    MenuButtons.Settings.MouseButton1Click:Connect(function() BuildSettingsSidebarV2(); Utility.Visible=false; Content.Visible=true end)
     MenuButtons.Profiles.MouseButton1Click:Connect(function() BuildProfilesSidebar(); Utility.Visible=false; Content.Visible=true end)
-    MenuButtons.Themes.MouseButton1Click:Connect(function() BuildThemeSidebar(); Utility.Visible=false; Content.Visible=true end)
+    MenuButtons.Themes.MouseButton1Click:Connect(function() BuildThemeSidebarV2(); Utility.Visible=false; Content.Visible=true end)
     MenuButtons.Targets.MouseButton1Click:Connect(function() BuildTargetsSidebar(); Utility.Visible=false; Content.Visible=true end)
     MenuButtons.Keybinds.MouseButton1Click:Connect(function() BuildKeybindsSidebar(); Utility.Visible=false; Content.Visible=true end)
     MenuButtons.About.MouseButton1Click:Connect(function() BuildAboutSidebar(); Utility.Visible=false; Content.Visible=true end)
