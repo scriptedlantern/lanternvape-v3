@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fix local function scopes
+      - name: Fix local function scopes and apply paid banner
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -26,23 +26,32 @@ jobs:
 
           # BuildGuiSubSidebar is declared before the responsive Layout function.
           # Give it the same local Layout variable that is assigned later.
-          if 'local Layout\n\nlocal function BuildGuiSubSidebar()' not in s:
+          if 'local Layout\\n\\nlocal function BuildGuiSubSidebar()' not in s:
               marker = 'local function BuildGuiSubSidebar()'
               if marker not in s:
                   raise SystemExit("BuildGuiSubSidebar marker missing")
-              s = s.replace(marker, 'local Layout\n\n' + marker, 1)
+              s = s.replace(marker, 'local Layout\\n\\n' + marker, 1)
           s = s.replace('local function Layout()', 'Layout = function()', 1)
 
           # The original file already has local Settings/Themes builders. The new
           # hierarchical builders must use distinct local names so BuildNormalSidebar
           # does not accidentally resolve the older local functions.
-          if 'local function BuildSettingsSidebarV2()' not in s and 'function BuildSettingsSidebar()\n    SideMode = "Settings"' in s:
-              s = s.replace('function BuildSettingsSidebar()\n    SideMode = "Settings"', 'local function BuildSettingsSidebarV2()\n    SideMode = "Settings"', 1)
-          if 'local function BuildThemeSidebarV2()' not in s and 'function BuildThemeSidebar()\n    SideMode = "Themes"' in s:
-              s = s.replace('function BuildThemeSidebar()\n    SideMode = "Themes"', 'local function BuildThemeSidebarV2()\n    SideMode = "Themes"', 1)
+          if 'local function BuildSettingsSidebarV2()' not in s and 'function BuildSettingsSidebar()\\n    SideMode = "Settings"' in s:
+              s = s.replace('function BuildSettingsSidebar()\\n    SideMode = "Settings"', 'local function BuildSettingsSidebarV2()\\n    SideMode = "Settings"', 1)
+          if 'local function BuildThemeSidebarV2()' not in s and 'function BuildThemeSidebar()\\n    SideMode = "Themes"' in s:
+              s = s.replace('function BuildThemeSidebar()\\n    SideMode = "Themes"', 'local function BuildThemeSidebarV2()\\n    SideMode = "Themes"', 1)
 
           s = s.replace('BuildSettingsSidebar(); Utility.Visible=false; Content.Visible=true', 'BuildSettingsSidebarV2(); Utility.Visible=false; Content.Visible=true', 1)
           s = s.replace('BuildThemeSidebar(); Utility.Visible=false; Content.Visible=true', 'BuildThemeSidebarV2(); Utility.Visible=false; Content.Visible=true', 1)
+
+          # Paid-build banner. It occupies the unused top-left area, so it does not
+          # cover Roblox's own UI and does not collide with the search field.
+          banner_marker = 'Scale.Parent = Main\\n'
+          banner = '''\\n-- PAID BUILD BANNER\\nlocal PaidBanner = Instance.new("Frame")\\nPaidBanner.Name = "PaidBanner"\\nPaidBanner.Size = UDim2.fromOffset(235,44)\\nPaidBanner.Position = UDim2.fromOffset(4,4)\\nPaidBanner.BackgroundColor3 = Config.Orange\\nPaidBanner.BackgroundTransparency = .02\\nPaidBanner.BorderSizePixel = 0\\nPaidBanner.ZIndex = 10\\nPaidBanner.Parent = Main\\nCorner(PaidBanner,7)\\nStroke(PaidBanner,Config.Orange,.15,1)\\n\\nlocal PaidGradient = Instance.new("UIGradient")\\nPaidGradient.Color = ColorSequence.new({\\n    ColorSequenceKeypoint.new(0, Color3.fromRGB(220,115,35)),\\n    ColorSequenceKeypoint.new(.5, Color3.fromRGB(245,150,35)),\\n    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,205,55))\\n})\\nPaidGradient.Rotation = 0\\nPaidGradient.Parent = PaidBanner\\n\\nlocal PaidText = Instance.new("TextLabel")\\nPaidText.Size = UDim2.fromScale(1,1)\\nPaidText.BackgroundTransparency = 1\\nPaidText.Text = "LANTERNVAPE PAID"\\nPaidText.TextColor3 = Color3.new(1,1,1)\\nPaidText.TextSize = 17\\nPaidText.Font = Enum.Font.GothamBold\\nPaidText.TextXAlignment = Enum.TextXAlignment.Center\\nPaidText.TextYAlignment = Enum.TextYAlignment.Center\\nPaidText.ZIndex = 11\\nPaidText.Parent = PaidBanner\\nStroke(PaidText,Color3.fromRGB(70,35,5),.25,1.2)\\n'''
+          if 'PaidBanner.Name = "PaidBanner"' not in s:
+              if banner_marker not in s:
+                  raise SystemExit("UIScale marker missing")
+              s = s.replace(banner_marker, banner_marker + banner, 1)
 
           required = [
               'local Layout',
@@ -50,14 +59,16 @@ jobs:
               'local function BuildSettingsSidebarV2()',
               'local function BuildThemeSidebarV2()',
               'BuildSettingsSidebarV2(); Utility.Visible=false; Content.Visible=true',
-              'BuildThemeSidebarV2(); Utility.Visible=false; Content.Visible=true'
+              'BuildThemeSidebarV2(); Utility.Visible=false; Content.Visible=true',
+              'local PaidBanner = Instance.new("Frame")',
+              'PaidText.Text = "LANTERNVAPE PAID"'
           ]
           for item in required:
               if item not in s:
                   raise SystemExit("Missing: " + item)
 
           p.write_text(s, encoding="utf-8")
-          print("LanternVape scope fixes applied")
+          print("LanternVape scope fixes and paid banner applied")
           PY
 
       - name: Validate
@@ -71,6 +82,7 @@ jobs:
           grep -q 'local function BuildSettingsSidebarV2()' main.lua
           grep -q 'local function BuildThemeSidebarV2()' main.lua
           grep -q 'local profileNames = {"Default"}' main.lua
+          grep -q 'PaidText.Text = "LANTERNVAPE PAID"' main.lua
           if grep -q 'local Brand = Instance.new("TextLabel")' main.lua; then exit 1; fi
           if grep -q 'SideTitle.Text' main.lua; then exit 1; fi
           if grep -q 'Control Panel' main.lua; then exit 1; fi
@@ -79,11 +91,11 @@ jobs:
         run: |
           set -euo pipefail
           if git diff --quiet -- main.lua; then
-            echo "No scope changes needed"
+            echo "No scope/banner changes needed"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add main.lua
-          git commit -m "Fix LanternVape sidebar function scope"
+          git commit -m "Add LanternVape paid build banner"
           git push
