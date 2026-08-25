@@ -1,0 +1,1 @@
+Temporary recovery marker: main.lua restored to the last known working UI build before the paid-banner automation changes. The broken workflow is being removed so it cannot rewrite main.lua again.
