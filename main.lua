@@ -89,38 +89,6 @@ local function Image(parent,asset,size,pos,z)
     return i
 end
 
-local function LoadRemoteAsset(url,name)
-    local getter = getcustomasset or getsynasset
-    if type(getter) ~= "function" or type(writefile) ~= "function" then
-        return nil
-    end
-    local okData, data = pcall(function()
-        return game:HttpGet(url)
-    end)
-    if not okData or type(data) ~= "string" or data == "" then
-        return nil
-    end
-    local fileName = "LanternVape_"..name
-    pcall(function()
-        if type(isfile) ~= "function" or not isfile(fileName) then
-            writefile(fileName, data)
-        end
-    end)
-    local okAsset, asset = pcall(function()
-        return getter(fileName)
-    end)
-    return okAsset and asset or nil
-end
-
-local MobileIconAsset = LoadRemoteAsset(
-    "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/mobile_icon.png",
-    "mobile_icon.png"
-)
-local LanternVapeTextAsset = LoadRemoteAsset(
-    "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/lanternvape_text.png",
-    "lanternvape_text.png"
-)
-
 local function ButtonIcon(parent,asset,size,pos,z)
     local b = Instance.new("ImageButton")
     b.Size = size
@@ -308,16 +276,28 @@ SideHeader.Parent = SideMenu
 Corner(SideHeader,7)
 Stroke(SideHeader,Config.Orange,.55,1)
 
-local SideTitle = Instance.new("ImageLabel")
-SideTitle.Name = "LanternVapeLogo"
-SideTitle.Size = UDim2.new(1,-20,0,32)
-SideTitle.Position = UDim2.fromOffset(10,7)
+local SideTitle = Instance.new("TextLabel")
+SideTitle.Size = UDim2.new(1,-20,0,26)
+SideTitle.Position = UDim2.fromOffset(14,8)
 SideTitle.BackgroundTransparency = 1
-SideTitle.Image = LanternVapeTextAsset or ""
-SideTitle.ImageColor3 = Color3.new(1,1,1)
-SideTitle.ScaleType = Enum.ScaleType.Fit
+SideTitle.Text = "LanternVape"
+SideTitle.TextColor3 = Config.White
+SideTitle.TextSize = 17
+SideTitle.Font = Enum.Font.GothamBold
+SideTitle.TextXAlignment = Enum.TextXAlignment.Left
 SideTitle.ZIndex = 22
 SideTitle.Parent = SideHeader
+
+local SideSubtitle = Instance.new("TextLabel")
+SideSubtitle.Size = UDim2.new(1,-20,0,18)
+SideSubtitle.Position = UDim2.fromOffset(14,33)
+SideSubtitle.BackgroundTransparency = 1
+SideSubtitle.Text = "Control Panel"
+SideSubtitle.TextColor3 = Config.Gray
+SideSubtitle.TextSize = 11
+SideSubtitle.Font = Enum.Font.Gotham
+SideSubtitle.ZIndex = 22
+SideSubtitle.Parent = SideHeader
 
 local SideAccent = Instance.new("Frame")
 SideAccent.Size = UDim2.new(1,-20,0,2)
@@ -833,7 +813,8 @@ local SettingsState = {ShowSearch=true,ShowFooter=true,CompactMobile=true,HideGU
 -- SETTINGS SIDEBAR
 local function BuildSettingsSidebar()
     ClearMenu()
-    SideTitle.Image = LanternVapeTextAsset or ""
+    SideTitle.Text = "Settings"
+    SideSubtitle.Text = "Configuration"
     local b1 = MakeMenuButton("GUI",Config.SettingsIcon,1,function()
         Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="GUI"; UtilitySubtitle.Text="Interface options"; ClearUtility()
         MakeSwitch(UtilityBody,"Show Search",SettingsState.ShowSearch,function(v) SettingsState.ShowSearch=v; Search.Visible=v end)
@@ -886,7 +867,8 @@ end
 
 local function BuildThemeSidebar()
     ClearMenu()
-    SideTitle.Image = LanternVapeTextAsset or ""
+    SideTitle.Text = "Themes"
+    SideSubtitle.Text = "Appearance"
     MakeMenuButton("Colors",Config.ThemesIcon,1,function()
         Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Themes"; UtilitySubtitle.Text="Choose an accent color"; ClearUtility()
         local grid=Instance.new("UIGridLayout")
@@ -929,7 +911,8 @@ end
 -- NORMAL SIDEBAR
 local function BuildNormalSidebar()
     ClearMenu()
-    SideTitle.Image = LanternVapeTextAsset or ""
+    SideTitle.Text = "LanternVape"
+    SideSubtitle.Text = "Control Panel"
     for i,d in ipairs(Items) do
         local b=MakeMenuButton(d[1],d[2],i)
         MenuButtons[d[1]]=b
@@ -991,8 +974,8 @@ Mobile.ZIndex=200
 Mobile.Parent=Gui
 Corner(Mobile,10)
 Stroke(Mobile,Config.Orange,.15,2)
-Mobile.Image=MobileIconAsset or Config.Icon
-Mobile.ImageColor3=Color3.new(1,1,1)
+Mobile.Image=Config.Icon
+Mobile.ImageColor3=Config.Orange
 Mobile.ScaleType=Enum.ScaleType.Fit
 
 local function toggleMain()
@@ -1050,4 +1033,4 @@ Tween(Bar,Config.LoadingTime,{Size=UDim2.new(1,0,1,0)})
 task.delay(Config.LoadingTime,FinishLoading)
 task.delay(5,FinishLoading)
 
-print("["..Config.Name.."] Loaded "..Config.Version)\n\n-- LanternVape asset-backed UI update v2.12\n
+print("["..Config.Name.."] Loaded "..Config.Version)
