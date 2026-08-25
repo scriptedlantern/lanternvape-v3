@@ -195,31 +195,6 @@ local Scale = Instance.new("UIScale")
 Scale.Scale = .92
 Scale.Parent = Main
 
-local Brand = Instance.new("TextLabel")
-Brand.Size = UDim2.fromOffset(190,42)
-Brand.Position = UDim2.fromOffset(4,4)
-Brand.BackgroundColor3 = Config.Black
-Brand.BackgroundTransparency = .05
-Brand.BorderSizePixel = 0
-Brand.Text = Config.Name
-Brand.TextColor3 = Config.White
-Brand.TextSize = 18
-Brand.Font = Enum.Font.GothamBold
-Brand.TextXAlignment = Enum.TextXAlignment.Left
-Brand.Parent = Main
-Corner(Brand,5)
-
-local BP = Instance.new("UIPadding")
-BP.PaddingLeft = UDim.new(0,14)
-BP.Parent = Brand
-
-local BA = Instance.new("Frame")
-BA.Size = UDim2.new(1,0,0,2)
-BA.Position = UDim2.new(0,0,1,-2)
-BA.BackgroundColor3 = Config.Orange
-BA.BorderSizePixel = 0
-BA.Parent = Brand
-
 -- SEARCH WITH REAL IMAGE ASSET
 local Search = Instance.new("TextBox")
 Search.Size = UDim2.fromOffset(230,34)
@@ -240,11 +215,11 @@ Corner(Search,5)
 Stroke(Search,Config.Orange,.8,1)
 
 local SP = Instance.new("UIPadding")
-SP.PaddingLeft = UDim.new(0,30)
+SP.PaddingLeft = UDim.new(0,38)
 Search.TextXAlignment = Enum.TextXAlignment.Left
 SP.Parent = Search
 
-local SearchIcon = Image(Search,Config.SearchIcon,UDim2.fromOffset(14,14),UDim2.fromOffset(8,10),5)
+local SearchIcon = Image(Search,Config.SearchIcon,UDim2.fromOffset(15,15),UDim2.fromOffset(10,9),5)
 SearchIcon.ImageColor3 = Config.Gray
 SearchIcon.ZIndex = 6
 
@@ -310,8 +285,8 @@ Stroke(SideHeader,Config.Orange,.55,1)
 
 local SideTitle = Instance.new("ImageLabel")
 SideTitle.Name = "LanternVapeLogo"
-SideTitle.Size = UDim2.new(1,-20,0,32)
-SideTitle.Position = UDim2.fromOffset(10,7)
+SideTitle.Size = UDim2.new(1,-10,1,-8)
+SideTitle.Position = UDim2.fromOffset(5,4)
 SideTitle.BackgroundTransparency = 1
 SideTitle.Image = LanternVapeTextAsset or ""
 SideTitle.ImageColor3 = Color3.new(1,1,1)
@@ -926,31 +901,217 @@ local function BuildThemeSidebar()
     end)
 end
 
--- NORMAL SIDEBAR
-local function BuildNormalSidebar()
-    ClearMenu()
-    SideTitle.Image = LanternVapeTextAsset or ""
-    for i,d in ipairs(Items) do
-        local b=MakeMenuButton(d[1],d[2],i)
-        MenuButtons[d[1]]=b
-        NormalMenuItems[d[1]]=b
-    end
-    MenuButtons.Settings.MouseButton1Click:Connect(function() Utility.Visible=false; Content.Visible=false; BuildSettingsSidebar(); SideMode="Settings"; SettingsBackState() end)
-    MenuButtons.Themes.MouseButton1Click:Connect(function() Utility.Visible=false; Content.Visible=false; BuildThemeSidebar(); SideMode="Themes"; SettingsBackState() end)
-    for _,n in ipairs({"Profiles","Targets","Keybinds","About"}) do
-        MenuButtons[n].MouseButton1Click:Connect(function()
-            Utility.Visible=true; Content.Visible=false; UtilityTitle.Text=n; UtilitySubtitle.Text="LanternVape"; ClearUtility()
-            UtilityRow(n,"This section is ready for additional modules.")
-        end)
-    end
-    MenuButtons.Profiles.MouseButton1Click:Connect(function()
-        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Profiles"; UtilitySubtitle.Text="Manage saved profiles"; ClearUtility();
-        local q=ProfileSearch and ProfileSearch.Text:lower() or ""
-        for _,name in ipairs(profileNames) do if q=="" or name:lower():find(q,1,true) then UtilityRow(name,"Saved profile") end end
-    end)
+-- SIDEBAR NAVIGATION
+local SideMode = "Normal"
+local profileNames = {"Default"}
+
+local function OpenUtility(title, subtitle, builder)
+    Utility.Visible = true
+    Content.Visible = false
+    UtilityTitle.Text = title
+    UtilitySubtitle.Text = subtitle or ""
+    ClearUtility()
+    if builder then builder() end
 end
 
-local SideMode="Normal"
+local function BuildSubSidebar(entries)
+    ClearMenu()
+    SideTitle.Image = LanternVapeTextAsset or ""
+    for i,entry in ipairs(entries) do
+        MakeMenuButton(entry[1], entry[2], i, entry[3])
+    end
+end
+
+local function ReturnToNormalSidebar()
+    Utility.Visible = false
+    Content.Visible = true
+    SideMode = "Normal"
+    BuildNormalSidebar()
+end
+
+local function ApplyDefaultProfile()
+    SetSpeedValue(16)
+    SetSpeedEnabled(false)
+    for _,n in ipairs(Categories) do
+        Enabled[n] = true
+        Panels[n].Visible = true
+    end
+end
+
+local function BuildGuiSubSidebar()
+    SideMode = "Settings.GUI"
+    BuildSubSidebar({
+        {"Visibility", Config.SettingsIcon, function()
+            OpenUtility("GUI Visibility", "Interface visibility", function()
+                MakeSwitch(UtilityBody,"Show Search",SettingsState.ShowSearch,function(v) SettingsState.ShowSearch=v; Search.Visible=v end)
+                MakeSwitch(UtilityBody,"Show Footer",SettingsState.ShowFooter,function(v) SettingsState.ShowFooter=v; Footer.Visible=v end)
+                MakeSwitch(UtilityBody,"Hide GUI",SettingsState.HideGUI,function(v)
+                    SettingsState.HideGUI=v
+                    Main.Visible=not v
+                    if v then SetBackgroundBlur(false) end
+                end)
+            end)
+        end},
+        {"Mobile", Config.KeybindsIcon, function()
+            OpenUtility("Mobile GUI", "Mobile interface options", function()
+                MakeSwitch(UtilityBody,"Compact Mobile",SettingsState.CompactMobile,function(v) SettingsState.CompactMobile=v; Layout() end)
+                MakeSwitch(UtilityBody,"Blur Background",SettingsState.BlurBackground,function(v)
+                    SettingsState.BlurBackground=v
+                    if Main.Visible and not SettingsState.HideGUI then SetBackgroundBlur(v) else SetBackgroundBlur(false) end
+                end)
+            end)
+        end},
+        {"Effects", Config.ThemesIcon, function()
+            OpenUtility("GUI Effects", "Visual effects", function()
+                MakeSwitch(UtilityBody,"Blur Background",SettingsState.BlurBackground,function(v)
+                    SettingsState.BlurBackground=v
+                    if Main.Visible and not SettingsState.HideGUI then SetBackgroundBlur(v) else SetBackgroundBlur(false) end
+                end)
+            end)
+        end}
+    })
+end
+
+local function BuildModulesSubSidebar()
+    SideMode = "Settings.Modules"
+    local entries = {}
+    for _,n in ipairs(Categories) do
+        table.insert(entries, {n, Config.ProfilesIcon, function()
+            OpenUtility(n, "Module visibility", function()
+                MakeSwitch(UtilityBody,"Show "..n,Enabled[n],function(v) Enabled[n]=v; Panels[n].Visible=v end)
+            end)
+        })
+    end
+    BuildSubSidebar(entries)
+end
+
+local function BuildCreditsSubSidebar()
+    SideMode = "Settings.Credits"
+    BuildSubSidebar({
+        {"Info", Config.AboutIcon, function()
+            OpenUtility("Credits", "LanternVape v"..Config.Version, function()
+                UtilityRow("LanternVape", "UI / development")
+                UtilityRow("Version", Config.Version)
+            end)
+        end},
+        {"Discord", Config.AboutIcon, function()
+            OpenUtility("Discord", "Community", function() UtilityRow("Discord", "discord.gg/Pa7aGyKjPR") end)
+        end}
+    })
+end
+
+function BuildSettingsSidebar()
+    SideMode = "Settings"
+    BuildSubSidebar({
+        {"GUI", Config.SettingsIcon, BuildGuiSubSidebar},
+        {"Modules", Config.ProfilesIcon, BuildModulesSubSidebar},
+        {"Credits", Config.AboutIcon, BuildCreditsSubSidebar}
+    })
+end
+
+local function BuildThemeColorsSubSidebar()
+    SideMode = "Themes.Colors"
+    local entries = {}
+    for n,c in pairs(Themes) do
+        table.insert(entries, {n, Config.ThemesIcon, function()
+            OpenUtility(n, "Theme color", function()
+                UtilityRow(n, "Apply the "..n.." accent", function() ApplyTheme(c) end)
+            end)
+        end})
+    end
+    BuildSubSidebar(entries)
+end
+
+local function BuildThemePresetsSubSidebar()
+    SideMode = "Themes.Presets"
+    local entries = {}
+    for n,c in pairs(Themes) do
+        table.insert(entries, {n, Config.ProfilesIcon, function()
+            OpenUtility("Preset: "..n, "Theme preset", function()
+                UtilityRow(n, "Apply the "..n.." accent", function() ApplyTheme(c) end)
+            end)
+        end})
+    end
+    BuildSubSidebar(entries)
+end
+
+function BuildThemeSidebar()
+    SideMode = "Themes"
+    BuildSubSidebar({
+        {"Colors", Config.ThemesIcon, BuildThemeColorsSubSidebar},
+        {"Presets", Config.ProfilesIcon, BuildThemePresetsSubSidebar}
+    })
+end
+
+local function BuildProfileManageSidebar()
+    SideMode = "Profiles.Manage"
+    local entries = {}
+    for _,name in ipairs(profileNames) do
+        table.insert(entries, {name, Config.ProfilesIcon, function()
+            OpenUtility(name, name == "Default" and "Built-in preset" or "Saved profile", function()
+                UtilityRow(name, "Apply this profile", function()
+                    if name == "Default" then ApplyDefaultProfile() end
+                end)
+            end)
+        end})
+    end
+    BuildSubSidebar(entries)
+end
+
+function BuildProfilesSidebar()
+    SideMode = "Profiles"
+    BuildSubSidebar({
+        {"Default", Config.ProfilesIcon, function()
+            ApplyDefaultProfile()
+            OpenUtility("Default", "Built-in profile restored", function()
+                UtilityRow("Default", "Speed 16 / all categories enabled")
+            end)
+        end},
+        {"Manage", Config.ProfilesIcon, BuildProfileManageSidebar}
+    })
+end
+
+local function BuildTargetsSidebar()
+    SideMode = "Targets"
+    BuildSubSidebar({
+        {"Players", Config.TargetsIcon, function() OpenUtility("Players", "Target selection", function() UtilityRow("Players", "Player targeting options") end) end},
+        {"Friends", Config.ProfilesIcon, function() OpenUtility("Friends", "Target filters", function() UtilityRow("Friends Only", "Friend targeting filter") end) end}
+    })
+end
+
+local function BuildKeybindsSidebar()
+    SideMode = "Keybinds"
+    BuildSubSidebar({
+        {"Keyboard", Config.KeybindsIcon, function() OpenUtility("Keyboard", "Keyboard shortcuts", function() UtilityRow("Toggle GUI", "Left Shift / Right Shift") end) end},
+        {"Mobile", Config.KeybindsIcon, function() OpenUtility("Mobile", "Touch controls", function() UtilityRow("Mobile Toggle", "Floating LanternVape button") end) end}
+    })
+end
+
+local function BuildAboutSidebar()
+    SideMode = "About"
+    BuildSubSidebar({
+        {"Info", Config.AboutIcon, function() OpenUtility("About LanternVape", "Version "..Config.Version, function() UtilityRow("LanternVape", "UI / development"); UtilityRow("Version", Config.Version) end) end},
+        {"Discord", Config.AboutIcon, function() OpenUtility("Discord", "Community", function() UtilityRow("Discord", "discord.gg/Pa7aGyKjPR") end) end}
+    })
+end
+
+function BuildNormalSidebar()
+    ClearMenu()
+    SideMode = "Normal"
+    SideTitle.Image = LanternVapeTextAsset or ""
+    for i,d in ipairs(Items) do
+        local b = MakeMenuButton(d[1], d[2], i)
+        MenuButtons[d[1]] = b
+        NormalMenuItems[d[1]] = b
+    end
+    MenuButtons.Settings.MouseButton1Click:Connect(function() BuildSettingsSidebar(); Utility.Visible=false; Content.Visible=true end)
+    MenuButtons.Profiles.MouseButton1Click:Connect(function() BuildProfilesSidebar(); Utility.Visible=false; Content.Visible=true end)
+    MenuButtons.Themes.MouseButton1Click:Connect(function() BuildThemeSidebar(); Utility.Visible=false; Content.Visible=true end)
+    MenuButtons.Targets.MouseButton1Click:Connect(function() BuildTargetsSidebar(); Utility.Visible=false; Content.Visible=true end)
+    MenuButtons.Keybinds.MouseButton1Click:Connect(function() BuildKeybindsSidebar(); Utility.Visible=false; Content.Visible=true end)
+    MenuButtons.About.MouseButton1Click:Connect(function() BuildAboutSidebar(); Utility.Visible=false; Content.Visible=true end)
+end
+
 function SettingsBackState()
     UtilityBack.Visible=true
 end
@@ -960,12 +1121,6 @@ UtilityBack.MouseButton1Click:Connect(function()
     SideMode="Normal"
     BuildNormalSidebar()
 end)
-
--- PROFILE DATA
-local profileNames={"Default"}
-local ProfileSearch=Instance.new("TextBox")
-ProfileSearch.Visible=false
-ProfileSearch.Parent=Gui
 
 BuildNormalSidebar()
 
