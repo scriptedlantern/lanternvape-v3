@@ -1,6 +1,5 @@
 -- LanternVape v2.12 startup-safe wrapper
--- Keeps the existing v2.11 UI/features while preventing remote PNG downloads
--- from blocking startup. The previous build is pinned by commit SHA.
+-- Loads the existing v2.11 UI, avoids blocking PNG downloads, then applies the PNGs asynchronously.
 
 local SOURCE_URL = "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/bc621427d037db3816cdacfa3d9fbb38f1ba4eb4/main.lua"
 
@@ -13,16 +12,15 @@ if not ok or type(source) ~= "string" or source == "" then
     return
 end
 
--- The previous build synchronously downloaded two PNGs before creating the UI.
--- Replace those calls with nil so the UI can initialize immediately.
+-- Disable the two synchronous asset downloads in the pinned UI.
 source = source:gsub(
-    'local MobileIconAsset = LoadRemoteAsset%(%s*"https://raw%.githubusercontent%.com/scriptedlantern/lanternvape%-v3/main/assets/mobile_icon%.png",%s*"mobile_icon%.png"%s*%)%s*local LanternVapeTextAsset = LoadRemoteAsset%(%s*"https://raw%.githubusercontent%.com/scriptedlantern/lanternvape%-v3/main/assets/lanternvape_text%.png",%s*"lanternvape_text%.png"%s*%)',
-    'local MobileIconAsset = nil\nlocal LanternVapeTextAsset = nil',
+    "local MobileIconAsset = LoadRemoteAsset%(%s*\"https://raw%.githubusercontent%.com/scriptedlantern/lanternvape%-v3/main/assets/mobile_icon%.png\",%s*\"mobile_icon%.png\"%s*%)%s*local LanternVapeTextAsset = LoadRemoteAsset%(%s*\"https://raw%.githubusercontent%.com/scriptedlantern/lanternvape%-v3/main/assets/lanternvape_text%.png\",%s*\"lanternvape_text%.png\"%s*%)",
+    "local MobileIconAsset = nil\nlocal LanternVapeTextAsset = nil",
     1
 )
 
--- Fetch the images after the existing UI has initialized.
-local patch = [[
+-- Load the custom PNGs after the UI has initialized.
+local patch = [=[
 
 task.spawn(function()
     local getter = getcustomasset or getsynasset
@@ -54,6 +52,7 @@ task.spawn(function()
         "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/mobile_icon.png",
         "LanternVape_mobile_icon.png"
     )
+
     local logoAsset = fetchAsset(
         "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/assets/lanternvape_text.png",
         "LanternVape_lanternvape_text.png"
@@ -66,15 +65,8 @@ task.spawn(function()
     if logoAsset and typeof(SideTitle) == "Instance" and SideTitle.Parent then
         SideTitle.Image = logoAsset
     end
-
-    if logoAsset then
-        LanternVapeTextAsset = logoAsset
-    end
-    if mobileAsset then
-        MobileIconAsset = mobileAsset
-    end
 end)
-]]
+]=]
 
 source = source .. patch
 
