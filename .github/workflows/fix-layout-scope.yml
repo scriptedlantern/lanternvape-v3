@@ -1,0 +1,57 @@
+name: Fix LanternVape Layout Scope
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fix Layout forward declaration
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("main.lua")
+          s = p.read_text(encoding="utf-8")
+          if 'local Layout\n\nlocal function BuildGuiSubSidebar()' not in s:
+              marker = 'local function BuildGuiSubSidebar()'
+              if marker not in s:
+                  raise SystemExit("BuildGuiSubSidebar marker missing")
+              s = s.replace(marker, 'local Layout\n\n' + marker, 1)
+          s = s.replace('local function Layout()', 'Layout = function()', 1)
+          if 'local Layout\n\nlocal function BuildGuiSubSidebar()' not in s:
+              raise SystemExit("Layout forward declaration missing")
+          if 'Layout = function()' not in s:
+              raise SystemExit("Layout assignment missing")
+          p.write_text(s, encoding="utf-8")
+          print("Layout scope fixed")
+          PY
+
+      - name: Validate
+        run: |
+          set -euo pipefail
+          grep -q 'local Layout' main.lua
+          grep -q 'Layout = function()' main.lua
+
+      - name: Commit
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- main.lua; then
+            echo "No Layout changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add main.lua
+          git commit -m "Fix LanternVape Layout scope"
+          git push
