@@ -1,0 +1,110 @@
+name: LanternVape v2.14 patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v214-patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch main.lua
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('main.lua')
+          text = path.read_text(encoding='utf-8')
+
+          if 'Version = "2.14"' not in text:
+              text = text.replace('Version = "2.12"', 'Version = "2.14"', 1)
+
+          whitelist = r'''\
+          --------------------------------------------------
+          -- ACCESS CONTROL
+          --------------------------------------------------
+          local AllowedUsers = {
+              oreopiecrayon = true,
+              ltsboba = true,
+          }
+
+          if not AllowedUsers[string.lower(Player.Name)] then
+              local ErrorGui = Instance.new("ScreenGui")
+              ErrorGui.Name = "LanternVape"
+              ErrorGui.IgnoreGuiInset = true
+              ErrorGui.ResetOnSpawn = false
+              ErrorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+              ErrorGui.Parent = PlayerGui
+
+              local ErrorFrame = Instance.new("Frame")
+              ErrorFrame.Size = UDim2.fromScale(1, 1)
+              ErrorFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+              ErrorFrame.BorderSizePixel = 0
+              ErrorFrame.Parent = ErrorGui
+
+              local ErrorText = Instance.new("TextLabel")
+              ErrorText.Size = UDim2.new(1, -40, 0, 80)
+              ErrorText.Position = UDim2.new(0.5, 0, 0.5, 0)
+              ErrorText.AnchorPoint = Vector2.new(0.5, 0.5)
+              ErrorText.BackgroundTransparency = 1
+              ErrorText.Text = "ERROR 602: USER HWID INVALID. RESET HWID IN THE SCRIPT PANEL"
+              ErrorText.TextColor3 = Color3.fromRGB(220, 115, 35)
+              ErrorText.TextSize = 18
+              ErrorText.Font = Enum.Font.GothamBold
+              ErrorText.TextWrapped = true
+              ErrorText.Parent = ErrorFrame
+              return
+          end
+          '''
+
+          marker = 'if not PlayerGui then return end\n'
+          if 'ERROR 602: USER HWID INVALID' not in text:
+              if marker not in text:
+                  raise SystemExit('Could not find PlayerGui marker')
+              text = text.replace(marker, marker + '\n' + whitelist + '\n', 1)
+
+          runtime = r'''\
+          --------------------------------------------------
+          -- BLATANT MODULE RUNTIME CONNECTOR
+          --------------------------------------------------
+          task.defer(function()
+              local ok, source = pcall(function()
+                  return game:HttpGet("https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/modules/BlatantRuntime.lua", true)
+              end)
+              if ok and type(source) == "string" then
+                  local fn = loadstring(source, "LanternVape/BlatantRuntime.lua")
+                  if fn then
+                      pcall(fn)
+                  end
+              end
+          end)
+          '''
+
+          marker2 = 'print("["..Config.Name.."] Loaded "..Config.Version)'
+          if 'modules/BlatantRuntime.lua' not in text:
+              if marker2 not in text:
+                  raise SystemExit('Could not find final print marker')
+              text = text.replace(marker2, runtime + '\n' + marker2, 1)
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: Commit patched main.lua
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add main.lua
+          if git diff --cached --quiet; then
+            echo "No changes needed."
+            exit 0
+          fi
+          git commit -m "LanternVape v2.14: connect Blatant modules and access control"
+          git push
