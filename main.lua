@@ -13,7 +13,7 @@ if not PlayerGui then return end
 
 local Config = {
     Name = "LanternVape",
-    Version = "2.12",
+    Version = "2.14",
 
     Icon = "rbxassetid://6031154871",
     SearchIcon = "rbxassetid://6031154871",
