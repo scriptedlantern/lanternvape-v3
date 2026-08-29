@@ -41,7 +41,6 @@ Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Gui.Parent = PlayerGui
 
--- BACKGROUND BLUR
 local BackgroundBlur = Instance.new("BlurEffect")
 BackgroundBlur.Name = "LanternVapeBlur"
 BackgroundBlur.Size = 0
@@ -104,7 +103,6 @@ local function ButtonIcon(parent,asset,size,pos,z)
     return b
 end
 
--- LOADING SCREEN
 local Loading = Instance.new("Frame")
 Loading.Size = UDim2.fromScale(1,1)
 Loading.BackgroundColor3 = Config.Black
@@ -150,7 +148,6 @@ Bar.ZIndex = 1003
 Bar.Parent = BarBG
 Corner(Bar,10)
 
--- MAIN WINDOW
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Size = UDim2.new(1,-30,1,-30)
@@ -188,7 +185,6 @@ BA.BackgroundColor3 = Config.Orange
 BA.BorderSizePixel = 0
 BA.Parent = Brand
 
--- SEARCH WITH REAL IMAGE ASSET
 local Search = Instance.new("TextBox")
 Search.Size = UDim2.fromOffset(230,34)
 Search.AnchorPoint = Vector2.new(.5,0)
@@ -216,9 +212,6 @@ local SearchIcon = Image(Search,Config.SearchIcon,UDim2.fromOffset(14,14),UDim2.
 SearchIcon.ImageColor3 = Config.Gray
 SearchIcon.ZIndex = 6
 
--- NO OLD TOP-RIGHT CLOSE BUTTON
-
--- FOOTER
 local Footer = Instance.new("Frame")
 Footer.Size = UDim2.new(1,-8,0,28)
 Footer.AnchorPoint = Vector2.new(.5,1)
@@ -255,7 +248,6 @@ Thanks.Font = Enum.Font.Gotham
 Thanks.Parent = Footer
 Stroke(Thanks,Color3.new(0,0,0),0,1.2)
 
--- SIDEBAR ROOT
 local SideMenu = Instance.new("Frame")
 SideMenu.Name = "SideMenu"
 SideMenu.Size = UDim2.fromOffset(235,0)
@@ -376,14 +368,18 @@ local function MakeMenuButton(name,asset,order,callback)
     B.MouseEnter:Connect(function()
         Tween(B,.12,{BackgroundColor3=Config.OrangeDark})
     end)
+
     B.MouseLeave:Connect(function()
         Tween(B,.12,{BackgroundColor3=Config.Darker})
     end)
-    if callback then B.MouseButton1Click:Connect(callback) end
+
+    if callback then
+        B.MouseButton1Click:Connect(callback)
+    end
+
     return B
 end
 
--- CATEGORY CONTENT
 local Content = Instance.new("ScrollingFrame")
 Content.Name = "Categories"
 Content.Position = UDim2.fromOffset(252,58)
@@ -398,7 +394,13 @@ Content.Parent = Main
 
 local Categories = {"Combat","Blatant","External","Rendering","Extra"}
 local Panels = {}
-local Enabled = {Combat=true,Blatant=true,External=true,Rendering=true,Extra=true}
+local Enabled = {
+    Combat=true,
+    Blatant=true,
+    External=true,
+    Rendering=true,
+    Extra=true
+}
 local Moved = {}
 
 local function makePanel(name,index)
@@ -448,9 +450,11 @@ local function makePanel(name,index)
     Modules.Parent = P
 
     H.Active = true
+
     local dragging = false
     local startPos
     local startInput
+
     H.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -459,44 +463,66 @@ local function makePanel(name,index)
             P.ZIndex = 50
         end
     end)
+
     UIS.InputChanged:Connect(function(input)
         if not dragging then return end
         if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+
         local delta = input.Position - startInput
-        P.Position = UDim2.fromOffset(startPos.X.Offset + delta.X,startPos.Y.Offset + delta.Y)
+        P.Position = UDim2.fromOffset(
+            startPos.X.Offset + delta.X,
+            startPos.Y.Offset + delta.Y
+        )
         Moved[name] = true
     end)
+
     UIS.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
             P.ZIndex = 5
         end
     end)
+
     return Modules
 end
 
-for i,n in ipairs(Categories) do makePanel(n,i) end
+for i,n in ipairs(Categories) do
+    makePanel(n,i)
+end
 
 local function LayoutCategories()
     local w = Content.AbsoluteSize.X
     if w <= 0 then return end
+
     local gap = 6
     local cols = 5
     local cw = math.max(1,(w-gap*(cols-1))/cols)
     local ch = 108
+
     for i,n in ipairs(Categories) do
         if not Moved[n] then
             local col = (i-1)%cols
             local row = math.floor((i-1)/cols)
+
             Panels[n].Size = UDim2.fromOffset(cw,ch)
-            Panels[n].Position = UDim2.fromOffset(col*(cw+gap),row*(ch+gap))
+            Panels[n].Position = UDim2.fromOffset(
+                col*(cw+gap),
+                row*(ch+gap)
+            )
         end
     end
-    Content.CanvasSize = UDim2.fromOffset(0,math.max(0,math.ceil(#Categories/cols)*(ch+gap)-gap))
+
+    Content.CanvasSize = UDim2.fromOffset(
+        0,
+        math.max(
+            0,
+            math.ceil(#Categories/cols)*(ch+gap)-gap
+        )
+    )
 end
+
 Content:GetPropertyChangedSignal("AbsoluteSize"):Connect(LayoutCategories)
 
--- SPEED MODULE
 local BlatantModules = Panels.Blatant:FindFirstChild("Modules")
 local SpeedEnabled = false
 local SpeedValue = 16
@@ -530,7 +556,6 @@ SpeedName.Font = Enum.Font.GothamSemibold
 SpeedName.TextXAlignment = Enum.TextXAlignment.Left
 SpeedName.Parent = SpeedButton
 
--- Proper three-dot UI, no unicode fallback
 local SpeedDots = Instance.new("ImageButton")
 SpeedDots.Name = "SpeedOptions"
 SpeedDots.Size = UDim2.fromOffset(36,34)
@@ -539,6 +564,7 @@ SpeedDots.BackgroundTransparency = 1
 SpeedDots.BorderSizePixel = 0
 SpeedDots.AutoButtonColor = false
 SpeedDots.Parent = SpeedRow
+
 for i=1,3 do
     local dot = Instance.new("Frame")
     dot.Size = UDim2.fromOffset(4,4)
@@ -601,7 +627,9 @@ Corner(SliderKnob,8)
 local function SetSpeedValue(v)
     SpeedValue = math.clamp(math.floor(v + .5),16,26)
     SpeedValueLabel.Text = "WalkSpeed: "..SpeedValue
+
     local alpha = (SpeedValue-16)/10
+
     SliderFill.Size = UDim2.new(alpha,0,1,0)
     SliderKnob.Position = UDim2.new(alpha,0,.5,0)
 end
@@ -609,61 +637,99 @@ end
 local function ApplySpeed()
     local char = Player.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum and SpeedEnabled then hum.WalkSpeed = SpeedValue end
+
+    if hum and SpeedEnabled then
+        hum.WalkSpeed = SpeedValue
+    end
 end
 
 local function SetSpeedEnabled(v)
     SpeedEnabled = v
     SpeedRow.BackgroundColor3 = v and Config.OrangeDark or Config.Darker
-    if SpeedConnection then SpeedConnection:Disconnect(); SpeedConnection=nil end
+
+    if SpeedConnection then
+        SpeedConnection:Disconnect()
+        SpeedConnection=nil
+    end
+
     if v then
         ApplySpeed()
+
         SpeedConnection = RunService.Heartbeat:Connect(ApplySpeed)
     else
         local char = Player.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = 16 end
+
+        if hum then
+            hum.WalkSpeed = 16
+        end
     end
 end
 
-SpeedButton.MouseButton1Click:Connect(function() SetSpeedEnabled(not SpeedEnabled) end)
-SpeedDots.MouseButton1Click:Connect(function() SpeedMenu.Visible = not SpeedMenu.Visible end)
+SpeedButton.MouseButton1Click:Connect(function()
+    SetSpeedEnabled(not SpeedEnabled)
+end)
+
+SpeedDots.MouseButton1Click:Connect(function()
+    SpeedMenu.Visible = not SpeedMenu.Visible
+end)
 
 local draggingSlider = false
+
 local function UpdateSlider(x)
     local left = SliderBG.AbsolutePosition.X
     local width = SliderBG.AbsoluteSize.X
+
     if width <= 0 then return end
+
     local alpha = math.clamp((x-left)/width,0,1)
+
     SetSpeedValue(16 + alpha*10)
-    if SpeedEnabled then ApplySpeed() end
+
+    if SpeedEnabled then
+        ApplySpeed()
+    end
 end
+
 SliderBG.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         draggingSlider=true
         UpdateSlider(input.Position.X)
     end
 end)
-UIS.InputChanged:Connect(function(input)
-    if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then UpdateSlider(input.Position.X) end
-end)
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSlider=false end
-end)
-SetSpeedValue(16)
-Player.CharacterAdded:Connect(function() task.wait(.25); ApplySpeed() end)
 
--- UTILITY CONTENT AREA USED BY SETTINGS/THEMES
+UIS.InputChanged:Connect(function(input)
+    if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        UpdateSlider(input.Position.X)
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingSlider=false
+    end
+end)
+
+SetSpeedValue(16)
+
+Player.CharacterAdded:Connect(function()
+    task.wait(.25)
+    ApplySpeed()
+end)
+
 local Utility = Instance.new("Frame")
 Utility.Name = "Utility"
-Utility.Position = UDim2.fromOffset(252,58)
-Utility.Size = UDim2.new(1,-256,1,-94)
+
+Utility.Position = UDim2.fromOffset(0,0)
+Utility.Size = UDim2.fromScale(1,1)
+
 Utility.BackgroundColor3 = Config.Black
 Utility.BackgroundTransparency = .02
 Utility.BorderSizePixel = 0
 Utility.Visible = false
 Utility.ZIndex = 40
-Utility.Parent = Main
+Utility.Parent = SideMenu
+
 Corner(Utility,8)
 Stroke(Utility,Config.Orange,.45,1)
 
@@ -719,7 +785,9 @@ BodyList.Parent = UtilityBody
 
 local function ClearUtility()
     for _,c in ipairs(UtilityBody:GetChildren()) do
-        if c ~= BodyList then c:Destroy() end
+        if c ~= BodyList then
+            c:Destroy()
+        end
     end
 end
 
@@ -733,6 +801,7 @@ local function UtilityRow(text,sub,callback)
     b.ZIndex = 42
     b.Parent = UtilityBody
     Corner(b,6)
+
     local t = Instance.new("TextLabel")
     t.Size = UDim2.new(1,-20,0,20)
     t.Position = UDim2.fromOffset(10,5)
@@ -744,6 +813,7 @@ local function UtilityRow(text,sub,callback)
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.ZIndex = 43
     t.Parent = b
+
     if sub then
         local s = Instance.new("TextLabel")
         s.Size = UDim2.new(1,-20,0,15)
@@ -757,7 +827,11 @@ local function UtilityRow(text,sub,callback)
         s.ZIndex = 43
         s.Parent = b
     end
-    if callback then b.MouseButton1Click:Connect(callback) end
+
+    if callback then
+        b.MouseButton1Click:Connect(callback)
+    end
+
     return b
 end
 
@@ -771,6 +845,7 @@ local function MakeSwitch(parent,text,state,callback)
     b.ZIndex = 42
     b.Parent = parent
     Corner(b,6)
+
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1,-60,1,0)
     l.Position = UDim2.fromOffset(10,0)
@@ -782,6 +857,7 @@ local function MakeSwitch(parent,text,state,callback)
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.ZIndex = 43
     l.Parent = b
+
     local sw = Instance.new("Frame")
     sw.Size = UDim2.fromOffset(28,16)
     sw.Position = UDim2.new(1,-38,.5,-8)
@@ -789,6 +865,7 @@ local function MakeSwitch(parent,text,state,callback)
     sw.ZIndex = 43
     sw.Parent = b
     Corner(sw,20)
+
     local knob = Instance.new("Frame")
     knob.Size = UDim2.fromOffset(12,12)
     knob.BackgroundColor3 = Config.White
@@ -796,85 +873,195 @@ local function MakeSwitch(parent,text,state,callback)
     knob.ZIndex = 44
     knob.Parent = sw
     Corner(knob,20)
+
     local function render()
         sw.BackgroundColor3 = state and Config.Orange or Config.Black
         knob.Position = state and UDim2.fromOffset(14,2) or UDim2.fromOffset(2,2)
     end
+
     render()
+
     b.MouseButton1Click:Connect(function()
         state = not state
         render()
-        if callback then callback(state) end
+
+        if callback then
+            callback(state)
+        end
     end)
 end
 
-local SettingsState = {ShowSearch=true,ShowFooter=true,CompactMobile=true,HideGUI=false,BlurBackground=true}
+local SettingsState = {
+    ShowSearch=true,
+    ShowFooter=true,
+    CompactMobile=true,
+    HideGUI=false,
+    BlurBackground=true
+}
 
--- SETTINGS SIDEBAR
 local function BuildSettingsSidebar()
     ClearMenu()
+
     SideTitle.Text = "Settings"
     SideSubtitle.Text = "Configuration"
+
     local b1 = MakeMenuButton("GUI",Config.SettingsIcon,1,function()
-        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="GUI"; UtilitySubtitle.Text="Interface options"; ClearUtility()
-        MakeSwitch(UtilityBody,"Show Search",SettingsState.ShowSearch,function(v) SettingsState.ShowSearch=v; Search.Visible=v end)
-        MakeSwitch(UtilityBody,"Show Footer",SettingsState.ShowFooter,function(v) SettingsState.ShowFooter=v; Footer.Visible=v end)
-        MakeSwitch(UtilityBody,"Compact Mobile",SettingsState.CompactMobile,function(v) SettingsState.CompactMobile=v; Layout() end)
-        MakeSwitch(UtilityBody,"Hide GUI",SettingsState.HideGUI,function(v)
-            SettingsState.HideGUI=v
-            Main.Visible=not v
-            Utility.Visible=false
-            if v then SetBackgroundBlur(false) end
-        end)
-        MakeSwitch(UtilityBody,"Blur Background",SettingsState.BlurBackground,function(v)
-            SettingsState.BlurBackground=v
-            if not Main.Visible then SetBackgroundBlur(false) else SetBackgroundBlur(v) end
-        end)
+        Utility.Visible=true
+        Content.Visible=false
+        UtilityTitle.Text="GUI"
+        UtilitySubtitle.Text="Interface options"
+        ClearUtility()
+
+        MakeSwitch(
+            UtilityBody,
+            "Show Search",
+            SettingsState.ShowSearch,
+            function(v)
+                SettingsState.ShowSearch=v
+                Search.Visible=v
+            end
+        )
+
+        MakeSwitch(
+            UtilityBody,
+            "Show Footer",
+            SettingsState.ShowFooter,
+            function(v)
+                SettingsState.ShowFooter=v
+                Footer.Visible=v
+            end
+        )
+
+        MakeSwitch(
+            UtilityBody,
+            "Compact Mobile",
+            SettingsState.CompactMobile,
+            function(v)
+                SettingsState.CompactMobile=v
+                Layout()
+            end
+        )
+
+        MakeSwitch(
+            UtilityBody,
+            "Hide GUI",
+            SettingsState.HideGUI,
+            function(v)
+                SettingsState.HideGUI=v
+                Main.Visible=not v
+                Utility.Visible=false
+
+                if v then
+                    SetBackgroundBlur(false)
+                end
+            end
+        )
+
+        MakeSwitch(
+            UtilityBody,
+            "Blur Background",
+            SettingsState.BlurBackground,
+            function(v)
+                SettingsState.BlurBackground=v
+
+                if not Main.Visible then
+                    SetBackgroundBlur(false)
+                else
+                    SetBackgroundBlur(v)
+                end
+            end
+        )
     end)
+
     local b2 = MakeMenuButton("Modules",Config.ProfilesIcon,2,function()
-        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Modules"; UtilitySubtitle.Text="Choose visible categories"; ClearUtility()
+        Utility.Visible=true
+        Content.Visible=false
+        UtilityTitle.Text="Modules"
+        UtilitySubtitle.Text="Choose visible categories"
+        ClearUtility()
+
         for _,n in ipairs(Categories) do
-            MakeSwitch(UtilityBody,"Show "..n,Enabled[n],function(v) Enabled[n]=v; Panels[n].Visible=v end)
+            MakeSwitch(
+                UtilityBody,
+                "Show "..n,
+                Enabled[n],
+                function(v)
+                    Enabled[n]=v
+                    Panels[n].Visible=v
+                end
+            )
         end
     end)
+
     local b3 = MakeMenuButton("Credits",Config.AboutIcon,3,function()
-        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Credits"; UtilitySubtitle.Text="LanternVape v"..Config.Version; ClearUtility()
+        Utility.Visible=true
+        Content.Visible=false
+        UtilityTitle.Text="Credits"
+        UtilitySubtitle.Text="LanternVape v"..Config.Version
+        ClearUtility()
+
         UtilityRow("LanternVape","UI / development")
         UtilityRow("Community","Thank you for using LanternVape!")
         UtilityRow("Discord","discord.gg/Pa7aGyKjPR")
     end)
 end
 
--- THEME SIDEBAR
 local Themes = {
-    Orange=Color3.fromRGB(220,115,35), Purple=Color3.fromRGB(150,85,220), Blue=Color3.fromRGB(70,135,235),
-    Green=Color3.fromRGB(70,190,110), Red=Color3.fromRGB(220,65,65), Pink=Color3.fromRGB(220,85,155)
+    Orange=Color3.fromRGB(220,115,35),
+    Purple=Color3.fromRGB(150,85,220),
+    Blue=Color3.fromRGB(70,135,235),
+    Green=Color3.fromRGB(70,190,110),
+    Red=Color3.fromRGB(220,65,65),
+    Pink=Color3.fromRGB(220,85,155)
 }
 
 local function ApplyTheme(c)
     Config.Orange=c
     Config.OrangeDark=c:Lerp(Color3.new(0,0,0),.35)
+
     for _,o in ipairs(Gui:GetDescendants()) do
-        if o:IsA("UIStroke") and o.Color ~= Color3.new(0,0,0) then o.Color=c end
-        if o:IsA("ScrollingFrame") then o.ScrollBarImageColor3=c end
-        if o:IsA("TextButton") and o == UtilityBack then o.BackgroundColor3=c end
-        if o:IsA("Frame") and (o.Name=="BA" or o.Name=="SideAccent") then o.BackgroundColor3=c end
+        if o:IsA("UIStroke") and o.Color ~= Color3.new(0,0,0) then
+            o.Color=c
+        end
+
+        if o:IsA("ScrollingFrame") then
+            o.ScrollBarImageColor3=c
+        end
+
+        if o:IsA("TextButton") and o == UtilityBack then
+            o.BackgroundColor3=c
+        end
+
+        if o:IsA("Frame") and (o.Name=="BA" or o.Name=="SideAccent") then
+            o.BackgroundColor3=c
+        end
+
         if o:IsA("ImageLabel") or o:IsA("ImageButton") then
-            if o.Name ~= "SearchIcon" then o.ImageColor3=c end
+            if o.Name ~= "SearchIcon" then
+                o.ImageColor3=c
+            end
         end
     end
 end
 
 local function BuildThemeSidebar()
     ClearMenu()
+
     SideTitle.Text = "Themes"
     SideSubtitle.Text = "Appearance"
+
     MakeMenuButton("Colors",Config.ThemesIcon,1,function()
-        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Themes"; UtilitySubtitle.Text="Choose an accent color"; ClearUtility()
+        Utility.Visible=true
+        Content.Visible=false
+        UtilityTitle.Text="Themes"
+        UtilitySubtitle.Text="Choose an accent color"
+        ClearUtility()
+
         local grid=Instance.new("UIGridLayout")
         grid.CellSize=UDim2.fromOffset(105,34)
         grid.CellPadding=UDim2.fromOffset(6,6)
         grid.Parent=UtilityBody
+
         for n,c in pairs(Themes) do
             local b=Instance.new("TextButton")
             b.BackgroundColor3=Config.Darker
@@ -887,6 +1074,7 @@ local function BuildThemeSidebar()
             b.ZIndex=42
             b.Parent=UtilityBody
             Corner(b,6)
+
             local d=Instance.new("Frame")
             d.Size=UDim2.fromOffset(8,8)
             d.Position=UDim2.fromOffset(8,13)
@@ -895,48 +1083,105 @@ local function BuildThemeSidebar()
             d.ZIndex=43
             d.Parent=b
             Corner(d,8)
+
             b.TextXAlignment=Enum.TextXAlignment.Right
+
             local p=Instance.new("UIPadding")
             p.PaddingRight=UDim.new(0,9)
             p.Parent=b
-            b.MouseButton1Click:Connect(function() ApplyTheme(c) end)
+
+            b.MouseButton1Click:Connect(function()
+                ApplyTheme(c)
+            end)
         end
     end)
+
     MakeMenuButton("Presets",Config.ProfilesIcon,2,function()
-        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Theme Presets"; UtilitySubtitle.Text="Quick accent presets"; ClearUtility()
-        for n,c in pairs(Themes) do UtilityRow(n,"Apply the "..n.." accent",function() ApplyTheme(c) end) end
+        Utility.Visible=true
+        Content.Visible=false
+        UtilityTitle.Text="Theme Presets"
+        UtilitySubtitle.Text="Quick accent presets"
+        ClearUtility()
+
+        for n,c in pairs(Themes) do
+            UtilityRow(
+                n,
+                "Apply the "..n.." accent",
+                function()
+                    ApplyTheme(c)
+                end
+            )
+        end
     end)
 end
 
--- NORMAL SIDEBAR
 local function BuildNormalSidebar()
     ClearMenu()
+
     SideTitle.Text = "LanternVape"
     SideSubtitle.Text = "Control Panel"
+
     for i,d in ipairs(Items) do
         local b=MakeMenuButton(d[1],d[2],i)
+
         MenuButtons[d[1]]=b
         NormalMenuItems[d[1]]=b
     end
-    MenuButtons.Settings.MouseButton1Click:Connect(function() Utility.Visible=false; Content.Visible=false; BuildSettingsSidebar(); SideMode="Settings"; SettingsBackState() end)
-    MenuButtons.Themes.MouseButton1Click:Connect(function() Utility.Visible=false; Content.Visible=false; BuildThemeSidebar(); SideMode="Themes"; SettingsBackState() end)
+
+    MenuButtons.Settings.MouseButton1Click:Connect(function()
+        Utility.Visible=false
+        Content.Visible=false
+        BuildSettingsSidebar()
+        SideMode="Settings"
+        SettingsBackState()
+    end)
+
+    MenuButtons.Themes.MouseButton1Click:Connect(function()
+        Utility.Visible=false
+        Content.Visible=false
+        BuildThemeSidebar()
+        SideMode="Themes"
+        SettingsBackState()
+    end)
+
     for _,n in ipairs({"Profiles","Targets","Keybinds","About"}) do
         MenuButtons[n].MouseButton1Click:Connect(function()
-            Utility.Visible=true; Content.Visible=false; UtilityTitle.Text=n; UtilitySubtitle.Text="LanternVape"; ClearUtility()
-            UtilityRow(n,"This section is ready for additional modules.")
+            Utility.Visible=true
+            Content.Visible=false
+            UtilityTitle.Text=n
+            UtilitySubtitle.Text="LanternVape"
+            ClearUtility()
+
+            UtilityRow(
+                n,
+                "This section is ready for additional modules."
+            )
         end)
     end
+
     MenuButtons.Profiles.MouseButton1Click:Connect(function()
-        Utility.Visible=true; Content.Visible=false; UtilityTitle.Text="Profiles"; UtilitySubtitle.Text="Manage saved profiles"; ClearUtility();
+        Utility.Visible=true
+        Content.Visible=false
+        UtilityTitle.Text="Profiles"
+        UtilitySubtitle.Text="Manage saved profiles"
+        ClearUtility()
+
         local q=ProfileSearch and ProfileSearch.Text:lower() or ""
-        for _,name in ipairs(profileNames) do if q=="" or name:lower():find(q,1,true) then UtilityRow(name,"Saved profile") end end
+
+        for _,name in ipairs(profileNames) do
+            if q=="" or name:lower():find(q,1,true) then
+                UtilityRow(name,"Saved profile")
+            end
+        end
     end)
 end
 
 local SideMode="Normal"
+
 function SettingsBackState()
     UtilityBack.Visible=true
 end
+
 UtilityBack.MouseButton1Click:Connect(function()
     Utility.Visible=false
     Content.Visible=true
@@ -944,23 +1189,24 @@ UtilityBack.MouseButton1Click:Connect(function()
     BuildNormalSidebar()
 end)
 
--- PROFILE DATA
 local profileNames={"Default"}
+
 local ProfileSearch=Instance.new("TextBox")
 ProfileSearch.Visible=false
 ProfileSearch.Parent=Gui
 
 BuildNormalSidebar()
 
--- SEARCH FILTER
 Search:GetPropertyChangedSignal("Text"):Connect(function()
     local q=Search.Text:lower()
+
     for n,p in pairs(Panels) do
-        p.Visible=Enabled[n] and (q=="" or n:lower():find(q,1,true)~=nil)
+        p.Visible=Enabled[n] and (
+            q=="" or n:lower():find(q,1,true)~=nil
+        )
     end
 end)
 
--- MOBILE TOGGLE
 local Mobile = Instance.new("ImageButton")
 Mobile.Name="MobileToggle"
 Mobile.Size=UDim2.fromOffset(40,40)
@@ -980,57 +1226,124 @@ Mobile.ScaleType=Enum.ScaleType.Fit
 
 local function toggleMain()
     Main.Visible=not Main.Visible
+
     if Main.Visible then
-        if SettingsState.BlurBackground and not SettingsState.HideGUI then SetBackgroundBlur(true) end
+        if SettingsState.BlurBackground and not SettingsState.HideGUI then
+            SetBackgroundBlur(true)
+        end
     else
         SetBackgroundBlur(false)
     end
 end
+
 Mobile.MouseButton1Click:Connect(toggleMain)
 
 UIS.InputBegan:Connect(function(i,p)
-    if not p and (i.KeyCode==Enum.KeyCode.LeftShift or i.KeyCode==Enum.KeyCode.RightShift) then toggleMain() end
+    if not p and (
+        i.KeyCode==Enum.KeyCode.LeftShift or
+        i.KeyCode==Enum.KeyCode.RightShift
+    ) then
+        toggleMain()
+    end
 end)
 
--- RESPONSIVE
 local Camera=workspace.CurrentCamera
+
 local function Layout()
     Camera=workspace.CurrentCamera or Camera
     if not Camera then return end
+
     local w=Camera.ViewportSize.X
+
     if UIS.TouchEnabled and SettingsState.CompactMobile then
-        Scale.Scale=(w<500 and .52) or (w<650 and .60) or (w<800 and .70) or .82
+        Scale.Scale=(w<500 and .52)
+            or (w<650 and .60)
+            or (w<800 and .70)
+            or .82
     else
-        Scale.Scale=(w<800 and .70) or (w<1000 and .82) or .92
+        Scale.Scale=(w<800 and .70)
+            or (w<1000 and .82)
+            or .92
     end
+
     local tl,br=GuiService:GetGuiInset()
-    Main.Position=UDim2.fromOffset(15,15+tl.Y)
-    Main.Size=UDim2.new(1,-30,1,-30-tl.Y-br.Y)
-    SideMenu.Size=UDim2.fromOffset(235,math.max(150,Main.AbsoluteSize.Y-66))
-    if UIS.TouchEnabled then Mobile.Position=UDim2.new(1,-8,0,8+tl.Y) end
+
+    Main.Position=UDim2.fromOffset(
+        15,
+        15+tl.Y
+    )
+
+    Main.Size=UDim2.new(
+        1,
+        -30,
+        1,
+        -30-tl.Y-br.Y
+    )
+
+    SideMenu.Size=UDim2.fromOffset(
+        235,
+        math.max(150,Main.AbsoluteSize.Y-66)
+    )
+
+    if UIS.TouchEnabled then
+        Mobile.Position=UDim2.new(
+            1,
+            -8,
+            0,
+            8+tl.Y
+        )
+    end
+
     LayoutCategories()
 end
-Layout()
-if Camera then Camera:GetPropertyChangedSignal("ViewportSize"):Connect(Layout) end
 
--- LOADING FINISH
+Layout()
+
+if Camera then
+    Camera:GetPropertyChangedSignal("ViewportSize"):Connect(Layout)
+end
+
 local Finished=false
+
 local function FinishLoading()
     if Finished then return end
+
     Finished=true
+
     Main.Visible=not SettingsState.HideGUI
     Mobile.Visible=UIS.TouchEnabled
-    if Main.Visible and SettingsState.BlurBackground then SetBackgroundBlur(true) end
+
+    if Main.Visible and SettingsState.BlurBackground then
+        SetBackgroundBlur(true)
+    end
+
     Tween(Loading,.35,{BackgroundTransparency=1})
     Tween(Tint,.35,{BackgroundTransparency=1})
     Tween(LoadingTitle,.35,{TextTransparency=1})
     Tween(BarBG,.35,{BackgroundTransparency=1})
     Tween(Bar,.35,{BackgroundTransparency=1})
-    task.delay(.4,function() if Loading and Loading.Parent then Loading:Destroy() end end)
+
+    task.delay(.4,function()
+        if Loading and Loading.Parent then
+            Loading:Destroy()
+        end
+    end)
 end
 
-Tween(Bar,Config.LoadingTime,{Size=UDim2.new(1,0,1,0)})
-task.delay(Config.LoadingTime,FinishLoading)
-task.delay(5,FinishLoading)
+Tween(
+    Bar,
+    Config.LoadingTime,
+    {Size=UDim2.new(1,0,1,0)}
+)
+
+task.delay(
+    Config.LoadingTime,
+    FinishLoading
+)
+
+task.delay(
+    5,
+    FinishLoading
+)
 
 print("["..Config.Name.."] Loaded "..Config.Version)
