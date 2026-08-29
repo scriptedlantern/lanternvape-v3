@@ -9,7 +9,7 @@ local Speed = {
     Category = "Blatant",
     Description = "Change your humanoid movement speed.",
     Min = 16,
-    Max = 26,
+    Max = 50,
     Value = 16,
     Enabled = false,
 }
