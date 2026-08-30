@@ -32,17 +32,12 @@ local function getJson(url)
     local ok, body = pcall(function()
         return game:HttpGet(url, true)
     end)
-    if not ok or type(body) ~= "string" then
-        return nil
-    end
+    if not ok or type(body) ~= "string" then return nil end
 
     local decodedOk, data = pcall(function()
         return HttpService:JSONDecode(body)
     end)
-    if not decodedOk or type(data) ~= "table" then
-        return nil
-    end
-
+    if not decodedOk or type(data) ~= "table" then return nil end
     return data
 end
 
@@ -152,9 +147,7 @@ local function makeSlider(parent, module, min, max)
         if width <= 0 then return end
         local alpha = math.clamp((x-bg.AbsolutePosition.X)/width,0,1)
         local value = min + alpha*(max-min)
-        if module.SetValue then
-            module:SetValue(value)
-        end
+        if module.SetValue then module:SetValue(value) end
         render()
     end
 
@@ -279,9 +272,7 @@ end
 
 local function collectCategoryDirectories()
     local root = getJson(API)
-    if not root then
-        return {}
-    end
+    if not root then return {} end
 
     local result = {}
     for _, item in ipairs(root) do
@@ -293,25 +284,18 @@ local function collectCategoryDirectories()
 end
 
 local categoryDirectories = collectCategoryDirectories()
-local layoutRows = {}
 local maxColumns = 5
 local gap = 6
 local minPanelHeight = 108
-local rowHeight = {}
 
 local function attachCategory(categoryName)
     local panel = categories:FindFirstChild(categoryName)
     local modulesFrame = panel and panel:FindFirstChild("Modules")
-    if not panel or not modulesFrame then
-        return 0
-    end
+    if not panel or not modulesFrame then return 0 end
 
     local oldRuntime = modulesFrame:FindFirstChild("LanternVapeRuntime")
-    if oldRuntime then
-        oldRuntime:Destroy()
-    end
+    if oldRuntime then oldRuntime:Destroy() end
 
-    -- Remove the old embedded Speed row. Speed.lua is now the single source.
     if categoryName == "Blatant" then
         local legacySpeed = modulesFrame:FindFirstChild("Speed")
         if legacySpeed then legacySpeed:Destroy() end
@@ -335,9 +319,7 @@ local function attachCategory(categoryName)
     list.Parent = container
 
     local files = getJson(API .. "/" .. categoryName)
-    if not files then
-        return 0
-    end
+    if not files then return 0 end
 
     local moduleFiles = {}
     for _, item in ipairs(files) do
@@ -353,32 +335,25 @@ local function attachCategory(categoryName)
         return a.name:lower() < b.name:lower()
     end)
 
-    for index, item in ipairs(moduleFiles) do
+    for _, item in ipairs(moduleFiles) do
         local module = loadModule(item.path)
         if module then
             module.Category = module.Category or categoryName
-            makeRow(container, module).LayoutOrder = index
+            -- UIListLayout is already sorted by insertion order here.
+            makeRow(container, module)
         end
     end
 
     modulesFrame.AutomaticSize = Enum.AutomaticSize.Y
 
-    local contentHeight = math.max(0, list.AbsoluteContentSize.Y)
-    return math.max(minPanelHeight, 38 + contentHeight + 8)
-end
-
--- Only category folders are treated as module containers. Files such as
--- modules/combat.lua are intentionally ignored so they cannot create duplicates.
-local categoriesWithModules = {}
-for _, categoryName in ipairs({"Combat", "Blatant", "External", "Rendering", "Extra"}) do
-    if categoryDirectories[categoryName] then
-        categoriesWithModules[categoryName] = true
-    end
+    return math.max(minPanelHeight, 38 + list.AbsoluteContentSize.Y + 8)
 end
 
 local categoryHeights = {}
-for categoryName in pairs(categoriesWithModules) do
-    categoryHeights[categoryName] = attachCategory(categoryName)
+for _, categoryName in ipairs({"Combat", "Blatant", "External", "Rendering", "Extra"}) do
+    if categoryDirectories[categoryName] then
+        categoryHeights[categoryName] = attachCategory(categoryName)
+    end
 end
 
 local function relayout()
@@ -387,7 +362,6 @@ local function relayout()
 
     local cols = maxColumns
     local cellWidth = math.max(1, (width - gap*(cols-1))/cols)
-
     local ordered = {"Combat", "Blatant", "External", "Rendering", "Extra"}
     local rowMax = {}
 
@@ -408,9 +382,7 @@ local function relayout()
         if panel then
             local col = (i-1)%cols
             local r = math.floor((i-1)/cols) + 1
-            local h = rowMax[r] or minPanelHeight
-
-            panel.Size = UDim2.fromOffset(cellWidth, h)
+            panel.Size = UDim2.fromOffset(cellWidth, rowMax[r] or minPanelHeight)
             panel.Position = UDim2.fromOffset(col*(cellWidth+gap), yByRow[r] or 0)
         end
     end
@@ -418,7 +390,6 @@ local function relayout()
     categories.CanvasSize = UDim2.fromOffset(0, math.max(0, y-gap))
 end
 
--- Re-run after the UIListLayout has measured the runtime rows.
 task.defer(relayout)
 task.delay(0.15, relayout)
 task.delay(0.5, relayout)
