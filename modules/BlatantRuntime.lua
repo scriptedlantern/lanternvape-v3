@@ -1,15 +1,19 @@
--- LanternVape V3 - Blatant runtime GUI connector
--- v2.14
+-- LanternVape V3 - Dynamic module runtime
+-- The GUI stays in main.lua. This file only discovers and attaches modules.
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
-local playerGui = player and player:FindFirstChildOfClass("PlayerGui")
+if not player then return end
+
+local playerGui = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui", 10)
 if not playerGui then return end
 
 local BASE = "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/"
+local API = "https://api.github.com/repos/scriptedlantern/lanternvape-v3/contents/modules"
+
 local ORANGE = Color3.fromRGB(220,115,35)
 local DARK = Color3.fromRGB(21,21,21)
 local BLACK = Color3.fromRGB(8,8,8)
@@ -30,50 +34,66 @@ local function stroke(o, c, t)
     s.Parent = o
 end
 
-local function loadModule(file)
-    local ok, source = pcall(function()
-        return game:HttpGet(BASE .. "modules/Blatant/" .. file, true)
+local function getJson(url)
+    local ok, body = pcall(function()
+        return game:HttpGet(url, true)
     end)
-    if not ok or type(source) ~= "string" then return nil end
+    if not ok or type(body) ~= "string" then
+        return nil
+    end
 
-    local fn, err = loadstring(source, "LanternVape/" .. file)
+    local decodedOk, data = pcall(function()
+        return HttpService:JSONDecode(body)
+    end)
+    if not decodedOk or type(data) ~= "table" then
+        return nil
+    end
+
+    return data
+end
+
+local function loadModule(path)
+    local ok, source = pcall(function()
+        return game:HttpGet(BASE .. path, true)
+    end)
+    if not ok or type(source) ~= "string" then
+        warn("[LanternVape] Failed to download module: " .. path)
+        return nil
+    end
+
+    local fn, err = loadstring(source, "LanternVape/" .. path)
     if not fn then
-        warn("[LanternVape] Failed to load " .. file .. ": " .. tostring(err))
+        warn("[LanternVape] Failed to compile " .. path .. ": " .. tostring(err))
         return nil
     end
 
-    local ok2, module = pcall(fn)
-    if not ok2 then
-        warn("[LanternVape] Failed to initialize " .. file .. ": " .. tostring(module))
+    local runOk, module = pcall(fn)
+    if not runOk then
+        warn("[LanternVape] Failed to initialize " .. path .. ": " .. tostring(module))
         return nil
     end
+
+    if type(module) ~= "table" or type(module.Name) ~= "string" then
+        warn("[LanternVape] Invalid module contract: " .. path)
+        return nil
+    end
+
     return module
 end
 
 local gui = playerGui:FindFirstChild("LanternVape")
 local main = gui and gui:FindFirstChild("Main")
 local categories = main and main:FindFirstChild("Categories")
-local blatant = categories and categories:FindFirstChild("Blatant")
-local modulesFrame = blatant and blatant:FindFirstChild("Modules")
-if not modulesFrame then
-    warn("[LanternVape] Blatant module container was not found.")
+if not categories then
+    warn("[LanternVape] Categories container was not found.")
     return
 end
-
-local moduleFiles = {
-    {name="Spider", file="Spider.lua", settings=true},
-    {name="Phase", file="Phase.lua"},
-    {name="Antifall", file="Antifall.lua"},
-    {name="Fly", file="Fly.lua", settings=true},
-    {name="HighJump", file="HighJump.lua"},
-    {name="Infinite Jump", file="InfiniteJump.lua"},
-}
 
 local function makeSlider(parent, module, min, max)
     local panel = Instance.new("Frame")
     panel.Name = "Settings"
     panel.Size = UDim2.new(1,-10,0,62)
-    panel.Position = UDim2.fromOffset(5,0)
+    panel.Position = UDim2.fromOffset(5,38)
     panel.BackgroundColor3 = BLACK
     panel.BorderSizePixel = 0
     panel.ZIndex = 90
@@ -120,8 +140,8 @@ local function makeSlider(parent, module, min, max)
 
     local function render()
         local value = math.clamp(tonumber(module.Value) or min, min, max)
-        local alpha = (value-min)/(max-min)
-        label.Text = string.format("Rate: %d", math.floor(value + .5))
+        local alpha = max == min and 0 or (value-min)/(max-min)
+        label.Text = string.format("Value: %d", math.floor(value + .5))
         fill.Size = UDim2.new(alpha,0,1,0)
         knob.Position = UDim2.new(alpha,0,.5,0)
     end
@@ -132,25 +152,30 @@ local function makeSlider(parent, module, min, max)
         if width <= 0 then return end
         local alpha = math.clamp((x-bg.AbsolutePosition.X)/width,0,1)
         local value = min + alpha*(max-min)
-        if module.SetValue then module:SetValue(value) end
+        if module.SetValue then
+            module:SetValue(value)
+        end
         render()
     end
 
     bg.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             update(input.Position.X)
         end
     end)
 
     UIS.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
             update(input.Position.X)
         end
     end)
 
     UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end)
@@ -159,10 +184,10 @@ local function makeSlider(parent, module, min, max)
     return panel
 end
 
-local function makeRow(module, hasSettings)
+local function makeRow(modulesFrame, module)
     local holder = Instance.new("Frame")
     holder.Name = module.Name
-    holder.Size = UDim2.new(1,-10,0,34 + (hasSettings and 0 or 0))
+    holder.Size = UDim2.new(1,-10,0,38)
     holder.BackgroundTransparency = 1
     holder.BorderSizePixel = 0
     holder.Parent = modulesFrame
@@ -179,7 +204,7 @@ local function makeRow(module, hasSettings)
     corner(row, 5)
 
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1,-50,1,0)
+    title.Size = UDim2.new(1,-52,1,0)
     title.Position = UDim2.fromOffset(10,0)
     title.BackgroundTransparency = 1
     title.Text = module.Name
@@ -203,6 +228,9 @@ local function makeRow(module, hasSettings)
 
     local settingsButton
     local settingsPanel
+    local hasSettings = type(module.SetValue) == "function"
+        and tonumber(module.Min) ~= nil
+        and tonumber(module.Max) ~= nil
 
     local function render()
         local on = module.Enabled == true
@@ -213,7 +241,12 @@ local function makeRow(module, hasSettings)
 
     row.MouseButton1Click:Connect(function()
         if module.SetEnabled then
-            module:SetEnabled(not module.Enabled)
+            local ok = pcall(function()
+                module:SetEnabled(not module.Enabled)
+            end)
+            if not ok then
+                warn("[LanternVape] Module toggle failed: " .. module.Name)
+            end
         end
         render()
     end)
@@ -233,11 +266,10 @@ local function makeRow(module, hasSettings)
         settingsButton.ZIndex = 55
         settingsButton.Parent = holder
 
-        local min, max = module.Min or 1, module.Max or 50
+        local min = tonumber(module.Min)
+        local max = tonumber(module.Max)
         settingsPanel = makeSlider(holder, module, min, max)
-        settingsPanel.Position = UDim2.fromOffset(5,38)
         settingsPanel.Visible = false
-        holder.Size = UDim2.new(1,-10,0,38)
 
         settingsButton.MouseButton1Click:Connect(function()
             settingsPanel.Visible = not settingsPanel.Visible
@@ -246,32 +278,94 @@ local function makeRow(module, hasSettings)
     end
 
     render()
-    return holder
 end
 
--- Prevent duplicate runtime rows if the connector is loaded twice.
-local existing = modulesFrame:FindFirstChild("LanternVapeRuntime")
-if existing then existing:Destroy() end
+local function attachCategory(categoryName, files)
+    local panel = categories:FindFirstChild(categoryName)
+    local modulesFrame = panel and panel:FindFirstChild("Modules")
+    if not modulesFrame then
+        return
+    end
 
-local container = Instance.new("Frame")
-container.Name = "LanternVapeRuntime"
-container.Size = UDim2.new(1,0,0,0)
-container.AutomaticSize = Enum.AutomaticSize.Y
-container.BackgroundTransparency = 1
-container.Parent = modulesFrame
+    -- Remove only the runtime-owned container. The GUI itself remains untouched.
+    local oldRuntime = modulesFrame:FindFirstChild("LanternVapeRuntime")
+    if oldRuntime then
+        oldRuntime:Destroy()
+    end
 
-local list = Instance.new("UIListLayout")
-list.Padding = UDim.new(0,5)
-list.SortOrder = Enum.SortOrder.LayoutOrder
-list.Parent = container
+    -- Speed used to be embedded in main.lua. Remove its old visual row so the
+    -- standalone modules/Blatant/Speed.lua becomes the single source of truth.
+    if categoryName == "Blatant" then
+        local legacySpeed = modulesFrame:FindFirstChild("Speed")
+        if legacySpeed then
+            legacySpeed:Destroy()
+        end
+        local legacySpeedMenu = modulesFrame:FindFirstChild("SpeedOptions")
+        if legacySpeedMenu then
+            legacySpeedMenu:Destroy()
+        end
+    end
 
-for index, info in ipairs(moduleFiles) do
-    local module = loadModule(info.file)
-    if module then
-        local row = makeRow(module, info.settings)
-        row.LayoutOrder = index
-        row.Parent = container
+    local container = Instance.new("Frame")
+    container.Name = "LanternVapeRuntime"
+    container.Size = UDim2.new(1,0,0,0)
+    container.AutomaticSize = Enum.AutomaticSize.Y
+    container.BackgroundTransparency = 1
+    container.Parent = modulesFrame
+
+    local list = Instance.new("UIListLayout")
+    list.Padding = UDim.new(0,5)
+    list.SortOrder = Enum.SortOrder.LayoutOrder
+    list.Parent = container
+
+    for index, file in ipairs(files) do
+        local module = loadModule(file.path)
+        if module then
+            module.Category = module.Category or categoryName
+            local row = makeRow(container, module)
+            row.LayoutOrder = index
+        end
+    end
+
+    modulesFrame.AutomaticSize = Enum.AutomaticSize.Y
+end
+
+local root = getJson(API)
+if not root then
+    warn("[LanternVape] Could not query the module directory.")
+    return
+end
+
+local categoryDirectories = {}
+for _, item in ipairs(root) do
+    if item.type == "dir" and type(item.name) == "string" then
+        categoryDirectories[#categoryDirectories + 1] = item.name
+    end
+end
+table.sort(categoryDirectories)
+
+for _, categoryName in ipairs(categoryDirectories) do
+    local files = getJson(API .. "/" .. HttpService:UrlEncode(categoryName))
+    if files then
+        local moduleFiles = {}
+        for _, item in ipairs(files) do
+            if item.type == "file"
+                and type(item.name) == "string"
+                and item.name:sub(-4):lower() == ".lua"
+                and item.name:lower() ~= "init.lua" then
+                moduleFiles[#moduleFiles + 1] = {
+                    name = item.name,
+                    path = item.path
+                }
+            end
+        end
+
+        table.sort(moduleFiles, function(a,b)
+            return a.name:lower() < b.name:lower()
+        end)
+
+        attachCategory(categoryName, moduleFiles)
     end
 end
 
-modulesFrame.AutomaticSize = Enum.AutomaticSize.Y
+print("[LanternVape] Dynamic modules loaded")
