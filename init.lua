@@ -1,26 +1,46 @@
--- LanternVape v3 loader
--- v2.14: load the current main build, then attach the Blatant runtime modules.
-local source = game:HttpGet("https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/main.lua", true)
-local chunk, err = loadstring(source, "LanternVape/main.lua")
-if not chunk then
-    error("[LanternVape] Failed to load current build: " .. tostring(err))
+-- LanternVape V3 - Public entrypoint
+-- main.lua is the GUI. This entrypoint loads the GUI first, then the dynamic module runtime.
+
+local BASE = "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/"
+
+local function loadSource(path)
+    local source = game:HttpGet(BASE .. path, true)
+    local chunk, err = loadstring(source, "LanternVape/" .. path)
+
+    if not chunk then
+        error("[LanternVape] Failed to compile " .. path .. ": " .. tostring(err))
+    end
+
+    return chunk
 end
 
-local result = chunk(...)
+local mainChunk = loadSource("main.lua")
+local result = mainChunk(...)
 
 task.defer(function()
-    task.wait(0.15)
-    local ok, runtimeSource = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/modules/BlatantRuntime.lua", true)
+    local player = game:GetService("Players").LocalPlayer
+    if not player then return end
+
+    local playerGui = player:WaitForChild("PlayerGui", 10)
+    if not playerGui then return end
+
+    -- Wait until main.lua has created the GUI before attaching modules.
+    local gui = playerGui:WaitForChild("LanternVape", 10)
+    if not gui then return end
+
+    local runtimeChunk
+    local ok, err = pcall(function()
+        runtimeChunk = loadSource("modules/BlatantRuntime.lua")
     end)
 
-    if ok and type(runtimeSource) == "string" then
-        local runtimeChunk, runtimeErr = loadstring(runtimeSource, "LanternVape/BlatantRuntime.lua")
-        if runtimeChunk then
-            pcall(runtimeChunk)
-        else
-            warn("[LanternVape] Blatant runtime failed: " .. tostring(runtimeErr))
-        end
+    if not ok or not runtimeChunk then
+        warn("[LanternVape] Module runtime failed to load: " .. tostring(err))
+        return
+    end
+
+    local runtimeOk, runtimeErr = pcall(runtimeChunk)
+    if not runtimeOk then
+        warn("[LanternVape] Module runtime failed: " .. tostring(runtimeErr))
     end
 end)
 
