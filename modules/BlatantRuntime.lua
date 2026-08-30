@@ -1,5 +1,5 @@
 -- LanternVape V3 - Dynamic module runtime
--- The GUI stays in main.lua. This file only discovers and attaches modules.
+-- main.lua remains the GUI. This file only discovers modules and attaches them.
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -11,6 +11,14 @@ if not player then return end
 local playerGui = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui", 10)
 if not playerGui then return end
 
+local gui = playerGui:FindFirstChild("LanternVape")
+local main = gui and gui:FindFirstChild("Main")
+local categories = main and main:FindFirstChild("Categories")
+if not categories then
+    warn("[LanternVape] Categories container was not found.")
+    return
+end
+
 local BASE = "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/"
 local API = "https://api.github.com/repos/scriptedlantern/lanternvape-v3/contents/modules"
 
@@ -19,20 +27,6 @@ local DARK = Color3.fromRGB(21,21,21)
 local BLACK = Color3.fromRGB(8,8,8)
 local WHITE = Color3.fromRGB(245,245,245)
 local GRAY = Color3.fromRGB(145,145,145)
-
-local function corner(o, r)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, r)
-    c.Parent = o
-end
-
-local function stroke(o, c, t)
-    local s = Instance.new("UIStroke")
-    s.Color = c
-    s.Transparency = t or 0
-    s.Thickness = 1
-    s.Parent = o
-end
 
 local function getJson(url)
     local ok, body = pcall(function()
@@ -61,9 +55,9 @@ local function loadModule(path)
         return nil
     end
 
-    local fn, err = loadstring(source, "LanternVape/" .. path)
+    local fn, compileErr = loadstring(source, "LanternVape/" .. path)
     if not fn then
-        warn("[LanternVape] Failed to compile " .. path .. ": " .. tostring(err))
+        warn("[LanternVape] Failed to compile " .. path .. ": " .. tostring(compileErr))
         return nil
     end
 
@@ -81,12 +75,18 @@ local function loadModule(path)
     return module
 end
 
-local gui = playerGui:FindFirstChild("LanternVape")
-local main = gui and gui:FindFirstChild("Main")
-local categories = main and main:FindFirstChild("Categories")
-if not categories then
-    warn("[LanternVape] Categories container was not found.")
-    return
+local function corner(o, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r)
+    c.Parent = o
+end
+
+local function stroke(o, c, t)
+    local s = Instance.new("UIStroke")
+    s.Color = c
+    s.Transparency = t or 0
+    s.Thickness = 1
+    s.Parent = o
 end
 
 local function makeSlider(parent, module, min, max)
@@ -181,12 +181,11 @@ local function makeSlider(parent, module, min, max)
     end)
 
     render()
-    return panel
 end
 
 local function makeRow(modulesFrame, module)
     local holder = Instance.new("Frame")
-    holder.Name = module.Name
+    holder.Name = "Module_" .. module.Name
     holder.Size = UDim2.new(1,-10,0,38)
     holder.BackgroundTransparency = 1
     holder.BorderSizePixel = 0
@@ -226,11 +225,11 @@ local function makeRow(modulesFrame, module)
     state.ZIndex = 51
     state.Parent = row
 
-    local settingsButton
-    local settingsPanel
     local hasSettings = type(module.SetValue) == "function"
         and tonumber(module.Min) ~= nil
         and tonumber(module.Max) ~= nil
+
+    local settingsPanel
 
     local function render()
         local on = module.Enabled == true
@@ -241,18 +240,18 @@ local function makeRow(modulesFrame, module)
 
     row.MouseButton1Click:Connect(function()
         if module.SetEnabled then
-            local ok = pcall(function()
+            local ok, err = pcall(function()
                 module:SetEnabled(not module.Enabled)
             end)
             if not ok then
-                warn("[LanternVape] Module toggle failed: " .. module.Name)
+                warn("[LanternVape] Module toggle failed: " .. module.Name .. ": " .. tostring(err))
             end
         end
         render()
     end)
 
     if hasSettings then
-        settingsButton = Instance.new("TextButton")
+        local settingsButton = Instance.new("TextButton")
         settingsButton.Name = "Options"
         settingsButton.Size = UDim2.fromOffset(36,34)
         settingsButton.Position = UDim2.new(1,-72,0,0)
@@ -266,9 +265,7 @@ local function makeRow(modulesFrame, module)
         settingsButton.ZIndex = 55
         settingsButton.Parent = holder
 
-        local min = tonumber(module.Min)
-        local max = tonumber(module.Max)
-        settingsPanel = makeSlider(holder, module, min, max)
+        settingsPanel = makeSlider(holder, module, tonumber(module.Min), tonumber(module.Max))
         settingsPanel.Visible = false
 
         settingsButton.MouseButton1Click:Connect(function()
@@ -280,30 +277,48 @@ local function makeRow(modulesFrame, module)
     render()
 end
 
-local function attachCategory(categoryName, files)
-    local panel = categories:FindFirstChild(categoryName)
-    local modulesFrame = panel and panel:FindFirstChild("Modules")
-    if not modulesFrame then
-        return
+local function collectCategoryDirectories()
+    local root = getJson(API)
+    if not root then
+        return {}
     end
 
-    -- Remove only the runtime-owned container. The GUI itself remains untouched.
+    local result = {}
+    for _, item in ipairs(root) do
+        if item.type == "dir" and type(item.name) == "string" then
+            result[item.name] = true
+        end
+    end
+    return result
+end
+
+local categoryDirectories = collectCategoryDirectories()
+local layoutRows = {}
+local maxColumns = 5
+local gap = 6
+local minPanelHeight = 108
+local rowHeight = {}
+
+local function attachCategory(categoryName)
+    local panel = categories:FindFirstChild(categoryName)
+    local modulesFrame = panel and panel:FindFirstChild("Modules")
+    if not panel or not modulesFrame then
+        return 0
+    end
+
     local oldRuntime = modulesFrame:FindFirstChild("LanternVapeRuntime")
     if oldRuntime then
         oldRuntime:Destroy()
     end
 
-    -- Speed used to be embedded in main.lua. Remove its old visual row so the
-    -- standalone modules/Blatant/Speed.lua becomes the single source of truth.
+    -- Remove the old embedded Speed row. Speed.lua is now the single source.
     if categoryName == "Blatant" then
         local legacySpeed = modulesFrame:FindFirstChild("Speed")
-        if legacySpeed then
-            legacySpeed:Destroy()
-        end
-        local legacySpeedMenu = modulesFrame:FindFirstChild("SpeedOptions")
-        if legacySpeedMenu then
-            legacySpeedMenu:Destroy()
-        end
+        if legacySpeed then legacySpeed:Destroy() end
+        local legacySpeedMenu = modulesFrame:FindFirstChild("SpeedMenu")
+        if legacySpeedMenu then legacySpeedMenu:Destroy() end
+        local legacySpeedOptions = modulesFrame:FindFirstChild("SpeedOptions")
+        if legacySpeedOptions then legacySpeedOptions:Destroy() end
     end
 
     local container = Instance.new("Frame")
@@ -311,6 +326,7 @@ local function attachCategory(categoryName, files)
     container.Size = UDim2.new(1,0,0,0)
     container.AutomaticSize = Enum.AutomaticSize.Y
     container.BackgroundTransparency = 1
+    container.BorderSizePixel = 0
     container.Parent = modulesFrame
 
     local list = Instance.new("UIListLayout")
@@ -318,54 +334,97 @@ local function attachCategory(categoryName, files)
     list.SortOrder = Enum.SortOrder.LayoutOrder
     list.Parent = container
 
-    for index, file in ipairs(files) do
-        local module = loadModule(file.path)
+    local files = getJson(API .. "/" .. categoryName)
+    if not files then
+        return 0
+    end
+
+    local moduleFiles = {}
+    for _, item in ipairs(files) do
+        if item.type == "file"
+            and type(item.name) == "string"
+            and item.name:sub(-4):lower() == ".lua"
+            and item.name:lower() ~= "init.lua" then
+            moduleFiles[#moduleFiles + 1] = item
+        end
+    end
+
+    table.sort(moduleFiles, function(a,b)
+        return a.name:lower() < b.name:lower()
+    end)
+
+    for index, item in ipairs(moduleFiles) do
+        local module = loadModule(item.path)
         if module then
             module.Category = module.Category or categoryName
-            local row = makeRow(container, module)
-            row.LayoutOrder = index
+            makeRow(container, module).LayoutOrder = index
         end
     end
 
     modulesFrame.AutomaticSize = Enum.AutomaticSize.Y
+
+    local contentHeight = math.max(0, list.AbsoluteContentSize.Y)
+    return math.max(minPanelHeight, 38 + contentHeight + 8)
 end
 
-local root = getJson(API)
-if not root then
-    warn("[LanternVape] Could not query the module directory.")
-    return
-end
-
-local categoryDirectories = {}
-for _, item in ipairs(root) do
-    if item.type == "dir" and type(item.name) == "string" then
-        categoryDirectories[#categoryDirectories + 1] = item.name
+-- Only category folders are treated as module containers. Files such as
+-- modules/combat.lua are intentionally ignored so they cannot create duplicates.
+local categoriesWithModules = {}
+for _, categoryName in ipairs({"Combat", "Blatant", "External", "Rendering", "Extra"}) do
+    if categoryDirectories[categoryName] then
+        categoriesWithModules[categoryName] = true
     end
 end
-table.sort(categoryDirectories)
 
-for _, categoryName in ipairs(categoryDirectories) do
-    local files = getJson(API .. "/" .. HttpService:UrlEncode(categoryName))
-    if files then
-        local moduleFiles = {}
-        for _, item in ipairs(files) do
-            if item.type == "file"
-                and type(item.name) == "string"
-                and item.name:sub(-4):lower() == ".lua"
-                and item.name:lower() ~= "init.lua" then
-                moduleFiles[#moduleFiles + 1] = {
-                    name = item.name,
-                    path = item.path
-                }
-            end
+local categoryHeights = {}
+for categoryName in pairs(categoriesWithModules) do
+    categoryHeights[categoryName] = attachCategory(categoryName)
+end
+
+local function relayout()
+    local width = categories.AbsoluteSize.X
+    if width <= 0 then return end
+
+    local cols = maxColumns
+    local cellWidth = math.max(1, (width - gap*(cols-1))/cols)
+
+    local ordered = {"Combat", "Blatant", "External", "Rendering", "Extra"}
+    local rowMax = {}
+
+    for i, name in ipairs(ordered) do
+        local r = math.floor((i-1)/cols) + 1
+        rowMax[r] = math.max(rowMax[r] or minPanelHeight, categoryHeights[name] or minPanelHeight)
+    end
+
+    local yByRow = {}
+    local y = 0
+    for r = 1, math.ceil(#ordered/cols) do
+        yByRow[r] = y
+        y = y + (rowMax[r] or minPanelHeight) + gap
+    end
+
+    for i, name in ipairs(ordered) do
+        local panel = categories:FindFirstChild(name)
+        if panel then
+            local col = (i-1)%cols
+            local r = math.floor((i-1)/cols) + 1
+            local h = rowMax[r] or minPanelHeight
+
+            panel.Size = UDim2.fromOffset(cellWidth, h)
+            panel.Position = UDim2.fromOffset(col*(cellWidth+gap), yByRow[r] or 0)
         end
-
-        table.sort(moduleFiles, function(a,b)
-            return a.name:lower() < b.name:lower()
-        end)
-
-        attachCategory(categoryName, moduleFiles)
     end
+
+    categories.CanvasSize = UDim2.fromOffset(0, math.max(0, y-gap))
 end
+
+-- Re-run after the UIListLayout has measured the runtime rows.
+task.defer(relayout)
+task.delay(0.15, relayout)
+task.delay(0.5, relayout)
+
+categories:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+    task.defer(relayout)
+end)
 
 print("[LanternVape] Dynamic modules loaded")
