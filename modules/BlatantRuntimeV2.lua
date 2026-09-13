@@ -196,25 +196,20 @@ local function createRow(container, module, resize)
     holder.ZIndex = 40
     holder.Parent = container
 
-    local row = Instance.new("Frame")
+    local row = Instance.new("TextButton")
     row.Name = "Row"
     row.Size = UDim2.new(1, 0, 0, 34)
     row.BackgroundColor3 = DARK
     row.BorderSizePixel = 0
+    row.Text = ""
+    row.AutoButtonColor = false
+    row.Active = true
     row.ZIndex = 50
     row.Parent = holder
     corner(row, 5)
     stroke(row, ORANGE, .82)
 
-    local toggle = Instance.new("TextButton")
-    toggle.Name = "Toggle"
-    toggle.Size = UDim2.new(1, -76, 1, 0)
-    toggle.BackgroundTransparency = 1
-    toggle.Text = ""
-    toggle.AutoButtonColor = false
-    toggle.Active = true
-    toggle.ZIndex = 55
-    toggle.Parent = row
+    local toggle = row
 
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -12, 1, 0)
