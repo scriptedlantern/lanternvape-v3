@@ -221,6 +221,7 @@ local function createRow(container, module, resize)
     title.Font = Enum.Font.GothamSemibold
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.ZIndex = 56
+    title.Active = false
     title.Parent = toggle
 
     local state = Instance.new("TextLabel")
@@ -232,6 +233,7 @@ local function createRow(container, module, resize)
     state.TextSize = 9
     state.Font = Enum.Font.GothamBold
     state.ZIndex = 56
+    state.Active = false
     state.Parent = row
 
     local settings = {}
@@ -255,8 +257,10 @@ local function createRow(container, module, resize)
         )
     end
 
+    local customSettings = nil
+    local hasCustomSettings = type(module.BuildSettings) == "function"
     local options
-    if #settings > 0 then
+    if #settings > 0 or hasCustomSettings then
         options = Instance.new("TextButton")
         options.Name = "Options"
         options.Size = UDim2.fromOffset(38, 34)
@@ -275,8 +279,10 @@ local function createRow(container, module, resize)
             setting.Visible = false
         end
 
-        options.MouseButton1Click:Connect(function()
-            local open = not settings[1].Visible
+        local customOpen = false
+
+        local function toggleSettings()
+            local open = (#settings > 0 and not settings[1].Visible) or (hasCustomSettings and not customOpen)
             local height = 38
 
             for _, setting in ipairs(settings) do
@@ -287,26 +293,41 @@ local function createRow(container, module, resize)
                 end
             end
 
+            if hasCustomSettings then
+                if not customSettings then
+                    local ok, result = pcall(function()
+                        return module:BuildSettings(holder, resize)
+                    end)
+                    if ok and type(result) == "table" then
+                        customSettings = result
+                    end
+                end
+
+                customOpen = open
+
+                if type(customSettings) == "table" then
+                    for _, setting in ipairs(customSettings) do
+                        if typeof(setting) == "Instance" then
+                            setting.Visible = open
+                            if open then
+                                setting.Position = UDim2.fromOffset(5, height)
+                                height = height + (setting.AbsoluteSize.Y > 0 and setting.AbsoluteSize.Y + 5 or 63)
+                            end
+                        end
+                    end
+                end
+            end
+
             holder.Size = UDim2.new(1, -10, 0, open and height or 38)
             task.defer(resize)
-        end)
+        end
+
+        options.MouseButton1Click:Connect(toggleSettings)
 
         options.InputBegan:Connect(function(input)
-            if input.UserInputType ~= Enum.UserInputType.Touch then return end
-
-            local open = not settings[1].Visible
-            local height = 38
-
-            for _, setting in ipairs(settings) do
-                setting.Visible = open
-                if open then
-                    setting.Position = UDim2.fromOffset(5, height)
-                    height = height + 63
-                end
+            if input.UserInputType == Enum.UserInputType.Touch then
+                toggleSettings()
             end
-
-            holder.Size = UDim2.new(1, -10, 0, open and height or 38)
-            task.defer(resize)
         end)
     end
 
@@ -343,6 +364,7 @@ end
 
 local categoryHeights = {}
 local panels = {}
+local loadedModules = {}
 
 local function updateCanvas()
     task.defer(function()
@@ -415,6 +437,7 @@ local function loadCategory(name)
     for _, filename in ipairs(names) do
         local module = loadModule("modules/" .. name .. "/" .. filename)
         if module then
+            loadedModules[#loadedModules + 1] = module
             createRow(box, module, resize)
         end
     end
@@ -433,6 +456,13 @@ end
 for _, directory in ipairs(directories) do
     if directory.type == "dir" and type(directory.name) == "string" then
         loadCategory(directory.name)
+    end
+end
+
+shared.LanternVapeModules = loadedModules
+for _, module in ipairs(loadedModules) do
+    if type(module.InitModules) == "function" then
+        pcall(function() module:InitModules(loadedModules) end)
     end
 end
 
