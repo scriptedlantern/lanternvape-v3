@@ -1,5 +1,5 @@
 -- LanternVape V3 - Combat / AimAssist
--- Smoothly turns the local camera toward the nearest visible player.
+-- Smooth camera assistance toward the nearest alive player.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -11,21 +11,21 @@ local AimAssist = {
     Category = "Combat",
     Description = "Camera tracks the nearest player.",
     Enabled = false,
-    Smoothness = 0.22,
+    Smoothness = 0.20,
     MaxDistance = 250
 }
 
 local connection
+local currentTarget
 
-local function getRoot(character)
+local function rootOf(character)
     return character and character:FindFirstChild("HumanoidRootPart")
 end
 
-local function getNearest()
+local function nearestPlayer()
     local character = player.Character
-    local localRoot = getRoot(character)
-    local camera = Workspace.CurrentCamera
-    if not localRoot or not camera then return nil end
+    local localRoot = rootOf(character)
+    if not localRoot then return nil end
 
     local nearest
     local nearestDistance = AimAssist.MaxDistance
@@ -34,12 +34,12 @@ local function getNearest()
         if target ~= player then
             local targetCharacter = target.Character
             local humanoid = targetCharacter and targetCharacter:FindFirstChildOfClass("Humanoid")
-            local targetRoot = getRoot(targetCharacter)
+            local targetRoot = rootOf(targetCharacter)
 
             if humanoid and humanoid.Health > 0 and targetRoot then
                 local distance = (targetRoot.Position - localRoot.Position).Magnitude
                 if distance < nearestDistance then
-                    nearest = targetRoot
+                    nearest = target
                     nearestDistance = distance
                 end
             end
@@ -47,6 +47,10 @@ local function getNearest()
     end
 
     return nearest
+end
+
+function AimAssist:GetTarget()
+    return currentTarget
 end
 
 function AimAssist:SetEnabled(enabled)
@@ -57,15 +61,28 @@ function AimAssist:SetEnabled(enabled)
         connection = nil
     end
 
-    if not enabled then return end
+    currentTarget = nil
+    shared.LanternVapeAimTarget = nil
+
+    if not enabled then
+        return
+    end
 
     connection = RunService.RenderStepped:Connect(function()
         if not self.Enabled then return end
 
         local camera = Workspace.CurrentCamera
-        local targetRoot = getNearest()
+        if not camera then return end
 
-        if not camera or not targetRoot then return end
+        local target = nearestPlayer()
+        currentTarget = target
+        shared.LanternVapeAimTarget = target
+
+        if not target then return end
+
+        local targetRoot = rootOf(target.Character)
+        local humanoid = target.Character and target.Character:FindFirstChildOfClass("Humanoid")
+        if not targetRoot or not humanoid or humanoid.Health <= 0 then return end
 
         local targetPosition = targetRoot.Position + Vector3.new(0, 1.5, 0)
         local desired = CFrame.lookAt(camera.CFrame.Position, targetPosition)
