@@ -24,7 +24,7 @@ local Config = {
     KeybindsIcon = "rbxassetid://129697930",
     AboutIcon = "rbxassetid://6031075930",
 
-    LoadingTime = 2.2,
+    LoadingTime = 2.3,
 
     Orange = Color3.fromRGB(220,115,35),
     OrangeDark = Color3.fromRGB(145,68,20),
