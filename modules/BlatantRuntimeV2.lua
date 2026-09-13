@@ -1,18 +1,17 @@
--- LanternVape V3 modular runtime
--- main.lua owns the GUI. This runtime only discovers modules and builds their controls.
+-- LanternVape V3 - Dynamic module runtime v3
+-- main.lua is the GUI. Modules are separate files and are discovered automatically.
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 
-local Player = Players.LocalPlayer
-if not Player then return end
+local player = Players.LocalPlayer
+local playerGui = player and player:WaitForChild("PlayerGui", 10)
+local gui = playerGui and playerGui:WaitForChild("LanternVape", 10)
+local main = gui and gui:WaitForChild("Main", 10)
+local categories = main and main:WaitForChild("Categories", 10)
 
-local PlayerGui = Player:WaitForChild("PlayerGui", 10)
-local Gui = PlayerGui and PlayerGui:WaitForChild("LanternVape", 10)
-local Main = Gui and Gui:WaitForChild("Main", 10)
-local Categories = Main and Main:WaitForChild("Categories", 10)
-if not Categories then
+if not categories then
     warn("[LanternVape] Categories container was not found.")
     return
 end
@@ -20,19 +19,17 @@ end
 local BASE = "https://raw.githubusercontent.com/scriptedlantern/lanternvape-v3/main/"
 local API = "https://api.github.com/repos/scriptedlantern/lanternvape-v3/contents/modules"
 
-local C = {
-    Orange = Color3.fromRGB(220,115,35),
-    Dark = Color3.fromRGB(21,21,21),
-    Black = Color3.fromRGB(8,8,8),
-    White = Color3.fromRGB(245,245,245),
-    Gray = Color3.fromRGB(145,145,145)
-}
+local ORANGE = Color3.fromRGB(220,115,35)
+local DARK = Color3.fromRGB(21,21,21)
+local BLACK = Color3.fromRGB(8,8,8)
+local WHITE = Color3.fromRGB(245,245,245)
+local GRAY = Color3.fromRGB(145,145,145)
 
 local function json(url)
     local ok, body = pcall(function()
         return game:HttpGet(url, true)
     end)
-    if not ok or type(body) ~= "string" then return nil end
+    if not ok then return nil end
 
     local decoded, data = pcall(function()
         return HttpService:JSONDecode(body)
@@ -46,23 +43,18 @@ local function loadModule(path)
         return game:HttpGet(BASE .. path, true)
     end)
     if not ok or type(source) ~= "string" then
-        warn("[LanternVape] Could not download " .. path)
+        warn("[LanternVape] Download failed: " .. path)
         return nil
     end
 
-    local chunk, compileError = loadstring(source, "LanternVape/" .. path)
-    if not chunk then
-        warn("[LanternVape] Compile error in " .. path .. ": " .. tostring(compileError))
+    local fn, err = loadstring(source, "LanternVape/" .. path)
+    if not fn then
+        warn("[LanternVape] Compile failed: " .. path .. " - " .. tostring(err))
         return nil
     end
 
-    local ran, module = pcall(chunk)
-    if not ran then
-        warn("[LanternVape] Error loading " .. path .. ": " .. tostring(module))
-        return nil
-    end
-
-    if type(module) ~= "table" or type(module.Name) ~= "string" then
+    local ran, module = pcall(fn)
+    if not ran or type(module) ~= "table" or type(module.Name) ~= "string" then
         warn("[LanternVape] Invalid module: " .. path)
         return nil
     end
@@ -84,96 +76,102 @@ local function stroke(object, color, transparency)
     s.Parent = object
 end
 
-local function makeSlider(holder, module, minimum, maximum, labelText, setter, property, y)
+local function createSlider(holder, module, minimum, maximum, property, setter, labelText, y)
     local panel = Instance.new("Frame")
     panel.Name = labelText:gsub("%s+", "") .. "Setting"
     panel.Size = UDim2.new(1, -10, 0, 58)
     panel.Position = UDim2.fromOffset(5, y)
-    panel.BackgroundColor3 = C.Black
+    panel.BackgroundColor3 = BLACK
     panel.BorderSizePixel = 0
     panel.ZIndex = 90
     panel.Parent = holder
     corner(panel, 6)
-    stroke(panel, C.Orange, .45)
+    stroke(panel, ORANGE, .45)
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, -20, 0, 20)
     label.Position = UDim2.fromOffset(10, 4)
     label.BackgroundTransparency = 1
-    label.TextColor3 = C.White
+    label.TextColor3 = WHITE
     label.TextSize = 10
     label.Font = Enum.Font.GothamSemibold
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.ZIndex = 91
     label.Parent = panel
 
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1, -20, 0, 6)
-    bar.Position = UDim2.fromOffset(10, 34)
-    bar.BackgroundColor3 = C.Dark
+    local bar = Instance.new("TextButton")
+    bar.Name = "Slider"
+    bar.Size = UDim2.new(1, -20, 0, 12)
+    bar.Position = UDim2.fromOffset(10, 31)
+    bar.BackgroundColor3 = DARK
     bar.BorderSizePixel = 0
-    bar.ZIndex = 91
+    bar.Text = ""
+    bar.AutoButtonColor = false
+    bar.Active = true
+    bar.ZIndex = 92
     bar.Parent = panel
     corner(bar, 6)
 
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new(0, 0, 1, 0)
-    fill.BackgroundColor3 = C.Orange
+    fill.BackgroundColor3 = ORANGE
     fill.BorderSizePixel = 0
-    fill.ZIndex = 92
+    fill.ZIndex = 93
     fill.Parent = bar
     corner(fill, 6)
 
     local knob = Instance.new("Frame")
-    knob.Size = UDim2.fromOffset(12, 12)
+    knob.Size = UDim2.fromOffset(14, 14)
     knob.AnchorPoint = Vector2.new(.5, .5)
-    knob.BackgroundColor3 = C.White
+    knob.BackgroundColor3 = WHITE
     knob.BorderSizePixel = 0
-    knob.ZIndex = 93
+    knob.ZIndex = 94
     knob.Parent = bar
     corner(knob, 8)
 
-    local dragging = false
-
     local function draw()
-        local value = tonumber(module[property]) or minimum
-        value = math.clamp(value, minimum, maximum)
-        local alpha = (value - minimum) / (maximum - minimum)
-        label.Text = labelText .. ": " .. math.floor(value + .5)
+        local value = math.clamp(tonumber(module[property]) or minimum, minimum, maximum)
+        local alpha = maximum == minimum and 0 or (value - minimum) / (maximum - minimum)
+        label.Text = string.format("%s: %d", labelText, math.floor(value + .5))
         fill.Size = UDim2.new(alpha, 0, 1, 0)
         knob.Position = UDim2.new(alpha, 0, .5, 0)
     end
 
-    local function setFromX(x)
+    local dragging = false
+
+    local function update(x)
         local width = bar.AbsoluteSize.X
         if width <= 0 then return end
 
         local alpha = math.clamp((x - bar.AbsolutePosition.X) / width, 0, 1)
         local value = minimum + alpha * (maximum - minimum)
 
-        if module[setter] then
-            pcall(function()
-                module[setter](module, value)
-            end)
+        local ok, err = pcall(function()
+            module[setter](module, value)
+        end)
+        if not ok then
+            warn("[LanternVape] Slider error: " .. module.Name .. " - " .. tostring(err))
         end
+
         draw()
     end
 
-    bar.Active = true
+    bar.MouseButton1Click:Connect(function(x)
+        update(x)
+    end)
+
     bar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
-            setFromX(input.Position.X)
+            update(input.Position.X)
         end
     end)
 
     UIS.InputChanged:Connect(function(input)
-        if dragging and (
-            input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch
-        ) then
-            setFromX(input.Position.X)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input.Position.X)
         end
     end)
 
@@ -188,7 +186,7 @@ local function makeSlider(holder, module, minimum, maximum, labelText, setter, p
     return panel
 end
 
-local function makeModuleRow(container, module)
+local function createRow(container, module, resize)
     local holder = Instance.new("Frame")
     holder.Name = "Module_" .. module.Name
     holder.Size = UDim2.new(1, -10, 0, 38)
@@ -198,238 +196,184 @@ local function makeModuleRow(container, module)
     holder.ZIndex = 40
     holder.Parent = container
 
-    local button = Instance.new("TextButton")
-    button.Name = "Toggle"
-    button.Size = UDim2.new(1, 0, 0, 34)
-    button.BackgroundColor3 = C.Dark
-    button.BorderSizePixel = 0
-    button.Text = ""
-    button.AutoButtonColor = false
-    button.Active = true
-    button.ZIndex = 50
-    button.Parent = holder
-    corner(button, 5)
-    stroke(button, C.Orange, .82)
+    local row = Instance.new("Frame")
+    row.Name = "Row"
+    row.Size = UDim2.new(1, 0, 0, 34)
+    row.BackgroundColor3 = DARK
+    row.BorderSizePixel = 0
+    row.ZIndex = 50
+    row.Parent = holder
+    corner(row, 5)
+    stroke(row, ORANGE, .82)
+
+    local toggle = Instance.new("TextButton")
+    toggle.Name = "Toggle"
+    toggle.Size = UDim2.new(1, -76, 1, 0)
+    toggle.BackgroundTransparency = 1
+    toggle.Text = ""
+    toggle.AutoButtonColor = false
+    toggle.Active = true
+    toggle.ZIndex = 55
+    toggle.Parent = row
 
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -115, 1, 0)
+    title.Size = UDim2.new(1, -12, 1, 0)
     title.Position = UDim2.fromOffset(10, 0)
     title.BackgroundTransparency = 1
     title.Text = module.Name
-    title.TextColor3 = C.White
+    title.TextColor3 = WHITE
     title.TextSize = 12
     title.Font = Enum.Font.GothamSemibold
     title.TextXAlignment = Enum.TextXAlignment.Left
-    title.ZIndex = 51
-    title.Parent = button
+    title.ZIndex = 56
+    title.Parent = toggle
 
     local state = Instance.new("TextLabel")
     state.Size = UDim2.fromOffset(34, 34)
     state.Position = UDim2.new(1, -38, 0, 0)
     state.BackgroundTransparency = 1
     state.Text = "OFF"
-    state.TextColor3 = C.Gray
+    state.TextColor3 = GRAY
     state.TextSize = 9
     state.Font = Enum.Font.GothamBold
-    state.ZIndex = 51
-    state.Parent = button
+    state.ZIndex = 56
+    state.Parent = row
 
     local settings = {}
 
     if type(module.SetValue) == "function"
-        and tonumber(module.Min)
-        and tonumber(module.Max) then
-        settings[#settings + 1] = makeSlider(
-            holder,
-            module,
-            tonumber(module.Min),
-            tonumber(module.Max),
-            "Speed",
-            "SetValue",
-            "Value",
-            38
+        and tonumber(module.Min) ~= nil
+        and tonumber(module.Max) ~= nil then
+        settings[#settings + 1] = createSlider(
+            holder, module, tonumber(module.Min), tonumber(module.Max),
+            "Value", "SetValue", "Value", 39
         )
     end
 
-    if type(module.SetVerticalValue) == "function" then
-        settings[#settings + 1] = makeSlider(
-            holder,
-            module,
-            tonumber(module.VerticalMin) or 1,
-            tonumber(module.VerticalMax) or 23,
-            "Vertical speed",
-            "SetVerticalValue",
-            "VerticalValue",
-            38 + (#settings * 63)
+    if type(module.SetVerticalValue) == "function"
+        and tonumber(module.VerticalMin) ~= nil
+        and tonumber(module.VerticalMax) ~= nil then
+        settings[#settings + 1] = createSlider(
+            holder, module, tonumber(module.VerticalMin), tonumber(module.VerticalMax),
+            "VerticalValue", "SetVerticalValue", "Vertical speed",
+            39 + (#settings * 63)
         )
     end
 
-    local options = Instance.new("TextButton")
-    options.Name = "Options"
-    options.Size = UDim2.fromOffset(36, 34)
-    options.Position = UDim2.new(1, -72, 0, 0)
-    options.BackgroundTransparency = 1
-    options.BorderSizePixel = 0
-    options.Text = "•••"
-    options.TextColor3 = C.Gray
-    options.TextSize = 14
-    options.Font = Enum.Font.GothamBold
-    options.AutoButtonColor = false
-    options.Active = true
-    options.ZIndex = 100
-    options.Parent = holder
+    local options
+    if #settings > 0 then
+        options = Instance.new("TextButton")
+        options.Name = "Options"
+        options.Size = UDim2.fromOffset(38, 34)
+        options.Position = UDim2.new(1, -76, 0, 0)
+        options.BackgroundTransparency = 1
+        options.Text = "•••"
+        options.TextColor3 = GRAY
+        options.TextSize = 14
+        options.Font = Enum.Font.GothamBold
+        options.AutoButtonColor = false
+        options.Active = true
+        options.ZIndex = 100
+        options.Parent = row
 
-    for _, setting in ipairs(settings) do
-        setting.Visible = false
-    end
+        for _, setting in ipairs(settings) do
+            setting.Visible = false
+        end
 
-    if #settings == 0 then
-        options.Visible = false
+        options.MouseButton1Click:Connect(function()
+            local open = not settings[1].Visible
+            local height = 38
+
+            for _, setting in ipairs(settings) do
+                setting.Visible = open
+                if open then
+                    setting.Position = UDim2.fromOffset(5, height)
+                    height = height + 63
+                end
+            end
+
+            holder.Size = UDim2.new(1, -10, 0, open and height or 38)
+            task.defer(resize)
+        end)
+
+        options.InputBegan:Connect(function(input)
+            if input.UserInputType ~= Enum.UserInputType.Touch then return end
+
+            local open = not settings[1].Visible
+            local height = 38
+
+            for _, setting in ipairs(settings) do
+                setting.Visible = open
+                if open then
+                    setting.Position = UDim2.fromOffset(5, height)
+                    height = height + 63
+                end
+            end
+
+            holder.Size = UDim2.new(1, -10, 0, open and height or 38)
+            task.defer(resize)
+        end)
     end
 
     local function render()
         local enabled = module.Enabled == true
-        button.BackgroundColor3 = enabled
-            and C.Orange:Lerp(Color3.new(0, 0, 0), .35)
-            or C.Dark
+        row.BackgroundColor3 = enabled and ORANGE:Lerp(Color3.new(0,0,0), .35) or DARK
         state.Text = enabled and "ON" or "OFF"
-        state.TextColor3 = enabled and C.White or C.Gray
+        state.TextColor3 = enabled and WHITE or GRAY
     end
 
-    local function toggle()
-        if type(module.SetEnabled) == "function" then
-            local ok, err = pcall(function()
-                module:SetEnabled(not module.Enabled)
-            end)
-            if not ok then
-                warn("[LanternVape] " .. module.Name .. ": " .. tostring(err))
-            end
-            render()
-        end
-    end
+    toggle.MouseButton1Click:Connect(function()
+        if type(module.SetEnabled) ~= "function" then return end
 
-    button.MouseButton1Click:Connect(toggle)
+        local ok, err = pcall(function()
+            module:SetEnabled(not module.Enabled)
+        end)
 
-    options.MouseButton1Click:Connect(function()
-        if #settings == 0 then return end
-
-        local open = not settings[1].Visible
-        local height = 38
-
-        for _, setting in ipairs(settings) do
-            setting.Visible = open
-            if open then
-                setting.Position = UDim2.fromOffset(5, height)
-                height = height + 63
-            end
+        if not ok then
+            warn("[LanternVape] Toggle error: " .. module.Name .. " - " .. tostring(err))
         end
 
-        holder.Size = UDim2.new(1, -10, 0, open and height or 38)
-    end)
-
-    -- Touch fallback: makes the three-dot target reliable on mobile.
-    options.InputBegan:Connect(function(input)
-        if input.UserInputType ~= Enum.UserInputType.Touch then return end
-        if #settings == 0 then return end
-
-        local open = not settings[1].Visible
-        local height = 38
-
-        for _, setting in ipairs(settings) do
-            setting.Visible = open
-            if open then
-                setting.Position = UDim2.fromOffset(5, height)
-                height = height + 63
-            end
-        end
-
-        holder.Size = UDim2.new(1, -10, 0, open and height or 38)
+        render()
     end)
 
     render()
 end
 
-local function removeLegacySpeed(frame)
-    -- main.lua previously contained a built-in Speed implementation.
-    -- Remove only that old module row/menu so the standalone Speed.lua is authoritative.
-    local oldRow = frame:FindFirstChild("Speed")
-    if oldRow then oldRow:Destroy() end
-
-    local oldMenu = frame:FindFirstChild("SpeedMenu")
-    if oldMenu then oldMenu:Destroy() end
-end
-
-local function resizeCategory(panel, modulesFrame, box)
-    task.defer(function()
-        if not panel.Parent or not modulesFrame.Parent or not box.Parent then return end
-
-        local contentHeight = box.AbsoluteSize.Y
-        local panelHeight = math.max(108, 38 + contentHeight + 8)
-
-        panel.Size = UDim2.new(panel.Size.X.Scale, panel.Size.X.Offset, 0, panelHeight)
-        modulesFrame.Size = UDim2.new(1, 0, 0, math.max(0, panelHeight - 38))
-        modulesFrame.ClipsDescendants = false
-        box.Size = UDim2.new(1, 0, 0, contentHeight)
-    end)
-end
-
-local function refreshCanvas()
-    task.defer(function()
-        local highest = 0
-        for _, panel in ipairs(Categories:GetChildren()) do
-            if panel:IsA("Frame") then
-                highest = math.max(highest, panel.Position.Y.Offset + panel.AbsoluteSize.Y)
-            end
-        end
-        Categories.CanvasSize = UDim2.fromOffset(0, math.max(0, highest + 12))
-    end)
-end
-
-local BLATANT_FALLBACK = {
-    "Antifall.lua",
-    "Fly.lua",
-    "HighJump.lua",
-    "InfiniteJump.lua",
-    "Phase.lua",
-    "Speed.lua",
-    "Spider.lua"
-}
-
-local function getModuleFiles(category)
-    local files = json(API .. "/" .. category)
-    local result = {}
-
-    if type(files) == "table" then
-        for _, item in ipairs(files) do
-            if item.type == "file"
-                and type(item.name) == "string"
-                and item.name:sub(-4):lower() == ".lua"
-                and item.name:lower() ~= "init.lua"
-                and item.name ~= "BlatantRuntime.lua"
-                and item.name ~= "BlatantRuntimeV2.lua" then
-                result[#result + 1] = item.name
-            end
-        end
+local function removeLegacy(frame)
+    for _, name in ipairs({"Speed", "SpeedMenu", "SpeedOptions"}) do
+        local object = frame:FindFirstChild(name)
+        if object then object:Destroy() end
     end
-
-    if category == "Blatant" and #result < #BLATANT_FALLBACK then
-        -- GitHub API can be rate-limited in some executors. Use the known module manifest.
-        result = table.clone(BLATANT_FALLBACK)
-    end
-
-    table.sort(result, function(a, b)
-        return a:lower() < b:lower()
-    end)
-
-    return result
 end
 
-local function attachCategory(categoryName)
-    local panel = Categories:FindFirstChild(categoryName)
+local categoryHeights = {}
+local panels = {}
+
+local function updateCanvas()
+    task.defer(function()
+        local bottom = 0
+        for _, panel in pairs(panels) do
+            bottom = math.max(bottom, panel.Position.Y.Offset + panel.AbsoluteSize.Y)
+        end
+        categories.CanvasSize = UDim2.fromOffset(0, bottom + 12)
+    end)
+end
+
+local function resizeCategory(name, panel, modulesFrame, box, list)
+    local height = math.max(108, 46 + list.AbsoluteContentSize.Y)
+    categoryHeights[name] = height
+    panel.Size = UDim2.new(panel.Size.X.Scale, panel.Size.X.Offset, 0, height)
+    modulesFrame.Size = UDim2.new(1, 0, 0, math.max(0, height - 38))
+    updateCanvas()
+end
+
+local function loadCategory(name)
+    local panel = categories:FindFirstChild(name)
     local modulesFrame = panel and panel:FindFirstChild("Modules")
     if not panel or not modulesFrame then return end
 
-    removeLegacySpeed(modulesFrame)
+    panels[name] = panel
+    removeLegacy(modulesFrame)
 
     local old = modulesFrame:FindFirstChild("LanternVapeRuntime")
     if old then old:Destroy() end
@@ -441,50 +385,104 @@ local function attachCategory(categoryName)
     box.BackgroundTransparency = 1
     box.BorderSizePixel = 0
     box.ClipsDescendants = false
-    box.ZIndex = 40
     box.Parent = modulesFrame
 
     local list = Instance.new("UIListLayout")
-    list.Padding = UDim.new(0, 5)
     list.SortOrder = Enum.SortOrder.Name
+    list.Padding = UDim.new(0, 5)
     list.Parent = box
 
-    local files = getModuleFiles(categoryName)
-    local loaded = {}
+    local function resize()
+        resizeCategory(name, panel, modulesFrame, box, list)
+    end
 
-    for _, filename in ipairs(files) do
-        local module = loadModule("modules/" .. categoryName .. "/" .. filename)
-        if module then
-            makeModuleRow(box, module)
-            loaded[#loaded + 1] = module.Name
+    local files = json(API .. "/" .. name) or {}
+    local names = {}
+
+    for _, item in ipairs(files) do
+        if item.type == "file"
+            and type(item.name) == "string"
+            and item.name:sub(-4):lower() == ".lua"
+            and item.name:lower() ~= "init.lua" then
+            names[#names + 1] = item.name
         end
     end
 
-    local function updateSize()
-        resizeCategory(panel, modulesFrame, box)
-        refreshCanvas()
+    if name == "Blatant" and #names == 0 then
+        names = {
+            "Antifall.lua", "Fly.lua", "HighJump.lua",
+            "InfiniteJump.lua", "Phase.lua", "Speed.lua", "Spider.lua"
+        }
     end
 
-    box:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSize)
-    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateSize)
+    table.sort(names, function(a,b) return a:lower() < b:lower() end)
 
-    task.defer(updateSize)
-    task.delay(.15, updateSize)
+    for _, filename in ipairs(names) do
+        local module = loadModule("modules/" .. name .. "/" .. filename)
+        if module then
+            createRow(box, module, resize)
+        end
+    end
 
-    print("[LanternVape] " .. categoryName .. ": " .. tostring(#loaded) .. " modules loaded")
+    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resize)
+    task.defer(resize)
+    task.delay(.15, resize)
 end
 
 local directories = json(API)
-if type(directories) ~= "table" then
+if not directories then
     warn("[LanternVape] Could not enumerate module folders.")
     return
 end
 
 for _, directory in ipairs(directories) do
     if directory.type == "dir" and type(directory.name) == "string" then
-        attachCategory(directory.name)
+        loadCategory(directory.name)
     end
 end
 
-refreshCanvas()
-print("[LanternVape] Modular runtime ready")
+-- Keep category widths/positions from main.lua, but make their heights dynamic.
+local function normalizeLayout()
+    local width = categories.AbsoluteSize.X
+    if width <= 0 then return end
+
+    local ordered = {"Combat", "Blatant", "External", "Rendering", "Extra"}
+    local gap = 6
+    local columns = 5
+    local cellWidth = math.max(1, (width - gap * (columns - 1)) / columns)
+
+    local rowHeights = {}
+    for i, name in ipairs(ordered) do
+        local row = math.floor((i - 1) / columns) + 1
+        rowHeights[row] = math.max(rowHeights[row] or 108, categoryHeights[name] or 108)
+    end
+
+    local rowY = {}
+    local y = 0
+    for row = 1, math.ceil(#ordered / columns) do
+        rowY[row] = y
+        y = y + (rowHeights[row] or 108) + gap
+    end
+
+    for i, name in ipairs(ordered) do
+        local panel = panels[name]
+        if panel then
+            local col = (i - 1) % columns
+            local row = math.floor((i - 1) / columns) + 1
+            panel.Size = UDim2.fromOffset(cellWidth, rowHeights[row] or 108)
+            panel.Position = UDim2.fromOffset(col * (cellWidth + gap), rowY[row] or 0)
+        end
+    end
+
+    categories.CanvasSize = UDim2.fromOffset(0, math.max(0, y - gap + 12))
+end
+
+categories:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+    task.defer(normalizeLayout)
+end)
+
+task.defer(normalizeLayout)
+task.delay(.1, normalizeLayout)
+task.delay(.5, normalizeLayout)
+
+print("[LanternVape] Modular runtime v3 ready")
