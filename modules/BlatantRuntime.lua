@@ -1,5 +1,5 @@
 -- LanternVape V3 - Dynamic module runtime
--- main.lua remains the GUI. This file only discovers modules and attaches them.
+-- main.lua remains the GUI. This runtime only discovers and renders modules.
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -8,10 +8,8 @@ local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 if not player then return end
 
-local playerGui = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui", 10)
-if not playerGui then return end
-
-local gui = playerGui:FindFirstChild("LanternVape")
+local playerGui = player:WaitForChild("PlayerGui", 10)
+local gui = playerGui and playerGui:FindFirstChild("LanternVape")
 local main = gui and gui:FindFirstChild("Main")
 local categories = main and main:FindFirstChild("Categories")
 if not categories then
@@ -34,10 +32,10 @@ local function getJson(url)
     end)
     if not ok or type(body) ~= "string" then return nil end
 
-    local decodedOk, data = pcall(function()
+    local decoded, data = pcall(function()
         return HttpService:JSONDecode(body)
     end)
-    if not decodedOk or type(data) ~= "table" then return nil end
+    if not decoded or type(data) ~= "table" then return nil end
     return data
 end
 
@@ -46,123 +44,135 @@ local function loadModule(path)
         return game:HttpGet(BASE .. path, true)
     end)
     if not ok or type(source) ~= "string" then
-        warn("[LanternVape] Failed to download module: " .. path)
+        warn("[LanternVape] Download failed: " .. path)
         return nil
     end
 
-    local fn, compileErr = loadstring(source, "LanternVape/" .. path)
+    local fn, compileError = loadstring(source, "LanternVape/" .. path)
     if not fn then
-        warn("[LanternVape] Failed to compile " .. path .. ": " .. tostring(compileErr))
+        warn("[LanternVape] Compile failed: " .. path .. " - " .. tostring(compileError))
         return nil
     end
 
-    local runOk, module = pcall(fn)
-    if not runOk then
-        warn("[LanternVape] Failed to initialize " .. path .. ": " .. tostring(module))
-        return nil
-    end
-
-    if type(module) ~= "table" or type(module.Name) ~= "string" then
-        warn("[LanternVape] Invalid module contract: " .. path)
+    local ran, module = pcall(fn)
+    if not ran or type(module) ~= "table" or type(module.Name) ~= "string" then
+        warn("[LanternVape] Invalid module: " .. path)
         return nil
     end
 
     return module
 end
 
-local function corner(o, r)
+local function corner(object, radius)
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, r)
-    c.Parent = o
+    c.CornerRadius = UDim.new(0, radius)
+    c.Parent = object
 end
 
-local function stroke(o, c, t)
+local function stroke(object, color, transparency)
     local s = Instance.new("UIStroke")
-    s.Color = c
-    s.Transparency = t or 0
+    s.Color = color
+    s.Transparency = transparency or 0
     s.Thickness = 1
-    s.Parent = o
+    s.Parent = object
 end
 
-local function makeSlider(parent, module, min, max)
+local categoryHeights = {}
+local relayout
+
+local function makeSlider(parent, module, minValue, maxValue, labelName)
     local panel = Instance.new("Frame")
-    panel.Name = "Settings"
-    panel.Size = UDim2.new(1,-10,0,62)
-    panel.Position = UDim2.fromOffset(5,38)
+    panel.Name = labelName:gsub("%s+", "") .. "Settings"
+    panel.Size = UDim2.new(1, -10, 0, 58)
+    panel.Position = UDim2.fromOffset(5, 39)
     panel.BackgroundColor3 = BLACK
     panel.BorderSizePixel = 0
-    panel.ZIndex = 90
+    panel.ZIndex = 80
     panel.Parent = parent
     corner(panel, 6)
-    stroke(panel, ORANGE, .45)
+    stroke(panel, ORANGE, .55)
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1,-20,0,20)
-    label.Position = UDim2.fromOffset(10,5)
+    label.Size = UDim2.new(1, -20, 0, 20)
+    label.Position = UDim2.fromOffset(10, 4)
     label.BackgroundTransparency = 1
     label.TextColor3 = WHITE
     label.TextSize = 10
     label.Font = Enum.Font.GothamSemibold
     label.TextXAlignment = Enum.TextXAlignment.Left
-    label.ZIndex = 91
+    label.ZIndex = 81
     label.Parent = panel
 
-    local bg = Instance.new("Frame")
-    bg.Size = UDim2.new(1,-20,0,6)
-    bg.Position = UDim2.fromOffset(10,35)
-    bg.BackgroundColor3 = DARK
-    bg.BorderSizePixel = 0
-    bg.ZIndex = 91
-    bg.Parent = panel
-    corner(bg, 6)
+    local track = Instance.new("TextButton")
+    track.Name = "Slider"
+    track.Size = UDim2.new(1, -20, 0, 12)
+    track.Position = UDim2.fromOffset(10, 31)
+    track.BackgroundColor3 = DARK
+    track.BorderSizePixel = 0
+    track.Text = ""
+    track.AutoButtonColor = false
+    track.ZIndex = 81
+    track.Parent = panel
+    corner(track, 6)
 
     local fill = Instance.new("Frame")
-    fill.Size = UDim2.new(0,0,1,0)
+    fill.Size = UDim2.new(0, 0, 1, 0)
     fill.BackgroundColor3 = ORANGE
     fill.BorderSizePixel = 0
-    fill.ZIndex = 92
-    fill.Parent = bg
+    fill.ZIndex = 82
+    fill.Parent = track
     corner(fill, 6)
 
     local knob = Instance.new("Frame")
-    knob.Size = UDim2.fromOffset(12,12)
-    knob.AnchorPoint = Vector2.new(.5,.5)
+    knob.Size = UDim2.fromOffset(14, 14)
+    knob.AnchorPoint = Vector2.new(.5, .5)
     knob.BackgroundColor3 = WHITE
     knob.BorderSizePixel = 0
-    knob.ZIndex = 93
-    knob.Parent = bg
+    knob.ZIndex = 83
+    knob.Parent = track
     corner(knob, 8)
 
+    local function currentValue()
+        local value = tonumber(module[labelName == "Vertical speed" and "VerticalValue" or "Value"]) or minValue
+        return math.clamp(value, minValue, maxValue)
+    end
+
     local function render()
-        local value = math.clamp(tonumber(module.Value) or min, min, max)
-        local alpha = max == min and 0 or (value-min)/(max-min)
-        label.Text = string.format("Value: %d", math.floor(value + .5))
-        fill.Size = UDim2.new(alpha,0,1,0)
-        knob.Position = UDim2.new(alpha,0,.5,0)
+        local value = currentValue()
+        local alpha = maxValue == minValue and 0 or (value - minValue) / (maxValue - minValue)
+        label.Text = string.format("%s: %d", labelName, math.floor(value + .5))
+        fill.Size = UDim2.new(alpha, 0, 1, 0)
+        knob.Position = UDim2.new(alpha, 0, .5, 0)
     end
 
     local dragging = false
-    local function update(x)
-        local width = bg.AbsoluteSize.X
+
+    local function setFromX(x)
+        local width = track.AbsoluteSize.X
         if width <= 0 then return end
-        local alpha = math.clamp((x-bg.AbsolutePosition.X)/width,0,1)
-        local value = min + alpha*(max-min)
-        if module.SetValue then module:SetValue(value) end
+
+        local alpha = math.clamp((x - track.AbsolutePosition.X) / width, 0, 1)
+        local value = minValue + alpha * (maxValue - minValue)
+
+        local setter = labelName == "Vertical speed" and module.SetVerticalValue or module.SetValue
+        if setter then
+            pcall(function()
+                setter(module, value)
+            end)
+        end
+
         render()
     end
 
-    bg.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            update(input.Position.X)
-        end
+    track.MouseButton1Down:Connect(function(x)
+        dragging = true
+        setFromX(x)
     end)
 
     UIS.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
             or input.UserInputType == Enum.UserInputType.Touch) then
-            update(input.Position.X)
+            setFromX(input.Position.X)
         end
     end)
 
@@ -173,153 +183,183 @@ local function makeSlider(parent, module, min, max)
         end
     end)
 
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            setFromX(input.Position.X)
+        end
+    end)
+
     render()
+    return panel
 end
 
-local function makeRow(modulesFrame, module)
+local function makeRow(modulesFrame, module, onChanged)
     local holder = Instance.new("Frame")
     holder.Name = "Module_" .. module.Name
-    holder.Size = UDim2.new(1,-10,0,38)
+    holder.Size = UDim2.new(1, -10, 0, 38)
     holder.BackgroundTransparency = 1
     holder.BorderSizePixel = 0
     holder.Parent = modulesFrame
 
-    local row = Instance.new("TextButton")
-    row.Name = "Toggle"
-    row.Size = UDim2.new(1,0,0,34)
+    local row = Instance.new("Frame")
+    row.Name = "Row"
+    row.Size = UDim2.new(1, 0, 0, 34)
     row.BackgroundColor3 = DARK
     row.BorderSizePixel = 0
-    row.Text = ""
-    row.AutoButtonColor = false
     row.ZIndex = 50
     row.Parent = holder
     corner(row, 5)
 
+    local toggle = Instance.new("TextButton")
+    toggle.Name = "Toggle"
+    toggle.Size = UDim2.new(1, -76, 1, 0)
+    toggle.BackgroundTransparency = 1
+    toggle.BorderSizePixel = 0
+    toggle.Text = ""
+    toggle.AutoButtonColor = false
+    toggle.ZIndex = 55
+    toggle.Parent = row
+
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1,-52,1,0)
-    title.Position = UDim2.fromOffset(10,0)
+    title.Size = UDim2.new(1, -12, 1, 0)
+    title.Position = UDim2.fromOffset(10, 0)
     title.BackgroundTransparency = 1
     title.Text = module.Name
     title.TextColor3 = WHITE
     title.TextSize = 12
     title.Font = Enum.Font.GothamSemibold
     title.TextXAlignment = Enum.TextXAlignment.Left
-    title.ZIndex = 51
-    title.Parent = row
+    title.ZIndex = 56
+    title.Parent = toggle
 
     local state = Instance.new("TextLabel")
-    state.Size = UDim2.fromOffset(34,34)
-    state.Position = UDim2.new(1,-38,0,0)
+    state.Size = UDim2.fromOffset(34, 34)
+    state.Position = UDim2.new(1, -38, 0, 0)
     state.BackgroundTransparency = 1
     state.Text = "OFF"
     state.TextColor3 = GRAY
     state.TextSize = 9
     state.Font = Enum.Font.GothamBold
-    state.ZIndex = 51
+    state.ZIndex = 56
     state.Parent = row
 
-    local hasSettings = type(module.SetValue) == "function"
+    local hasHorizontal = type(module.SetValue) == "function"
         and tonumber(module.Min) ~= nil
         and tonumber(module.Max) ~= nil
 
-    local settingsPanel
+    local hasVertical = type(module.SetVerticalValue) == "function"
+        and tonumber(module.VerticalMin) ~= nil
+        and tonumber(module.VerticalMax) ~= nil
 
-    local function render()
-        local on = module.Enabled == true
-        row.BackgroundColor3 = on and ORANGE:Lerp(Color3.new(0,0,0), .35) or DARK
-        state.Text = on and "ON" or "OFF"
-        state.TextColor3 = on and WHITE or GRAY
+    local options
+    local panels = {}
+
+    local function refresh()
+        local enabled = module.Enabled == true
+        row.BackgroundColor3 = enabled and ORANGE:Lerp(Color3.new(0,0,0), .35) or DARK
+        state.Text = enabled and "ON" or "OFF"
+        state.TextColor3 = enabled and WHITE or GRAY
+        if onChanged then onChanged() end
     end
 
-    row.MouseButton1Click:Connect(function()
+    toggle.MouseButton1Click:Connect(function()
         if module.SetEnabled then
             local ok, err = pcall(function()
                 module:SetEnabled(not module.Enabled)
             end)
             if not ok then
-                warn("[LanternVape] Module toggle failed: " .. module.Name .. ": " .. tostring(err))
+                warn("[LanternVape] Toggle failed: " .. module.Name .. " - " .. tostring(err))
             end
         end
-        render()
+        refresh()
     end)
 
-    if hasSettings then
-        local settingsButton = Instance.new("TextButton")
-        settingsButton.Name = "Options"
-        settingsButton.Size = UDim2.fromOffset(36,34)
-        settingsButton.Position = UDim2.new(1,-72,0,0)
-        settingsButton.BackgroundTransparency = 1
-        settingsButton.BorderSizePixel = 0
-        settingsButton.Text = "•••"
-        settingsButton.TextColor3 = GRAY
-        settingsButton.TextSize = 13
-        settingsButton.Font = Enum.Font.GothamBold
-        settingsButton.AutoButtonColor = false
-        settingsButton.ZIndex = 55
-        settingsButton.Parent = holder
+    if hasHorizontal or hasVertical then
+        options = Instance.new("TextButton")
+        options.Name = "Options"
+        options.Size = UDim2.fromOffset(38, 34)
+        options.Position = UDim2.new(1, -76, 0, 0)
+        options.BackgroundTransparency = 1
+        options.BorderSizePixel = 0
+        options.Text = "•••"
+        options.TextColor3 = GRAY
+        options.TextSize = 13
+        options.Font = Enum.Font.GothamBold
+        options.AutoButtonColor = false
+        options.ZIndex = 70
+        options.Parent = row
 
-        settingsPanel = makeSlider(holder, module, tonumber(module.Min), tonumber(module.Max))
-        settingsPanel.Visible = false
+        if hasHorizontal then
+            panels[#panels + 1] = makeSlider(holder, module, tonumber(module.Min), tonumber(module.Max), "Value")
+        end
 
-        settingsButton.MouseButton1Click:Connect(function()
-            settingsPanel.Visible = not settingsPanel.Visible
-            holder.Size = UDim2.new(1,-10,0, settingsPanel.Visible and 104 or 38)
+        if hasVertical then
+            local vertical = makeSlider(holder, module, tonumber(module.VerticalMin), tonumber(module.VerticalMax), "Vertical speed")
+            vertical.Position = UDim2.fromOffset(5, 101)
+            panels[#panels + 1] = vertical
+        end
+
+        for _, panel in ipairs(panels) do
+            panel.Visible = false
+        end
+
+        options.MouseButton1Click:Connect(function()
+            local open = not panels[1].Visible
+
+            for index, panel in ipairs(panels) do
+                panel.Visible = open
+                if open then
+                    panel.Position = UDim2.fromOffset(5, 39 + (index - 1) * 67)
+                end
+            end
+
+            holder.Size = UDim2.new(1, -10, 0, open and (39 + #panels * 67) or 38)
+            task.defer(function()
+                if relayout then relayout() end
+            end)
         end)
     end
 
-    render()
+    refresh()
 end
-
-local function collectCategoryDirectories()
-    local root = getJson(API)
-    if not root then return {} end
-
-    local result = {}
-    for _, item in ipairs(root) do
-        if item.type == "dir" and type(item.name) == "string" then
-            result[item.name] = true
-        end
-    end
-    return result
-end
-
-local categoryDirectories = collectCategoryDirectories()
-local maxColumns = 5
-local gap = 6
-local minPanelHeight = 108
 
 local function attachCategory(categoryName)
     local panel = categories:FindFirstChild(categoryName)
     local modulesFrame = panel and panel:FindFirstChild("Modules")
-    if not panel or not modulesFrame then return 0 end
+    if not panel or not modulesFrame then
+        return
+    end
 
     local oldRuntime = modulesFrame:FindFirstChild("LanternVapeRuntime")
     if oldRuntime then oldRuntime:Destroy() end
 
     if categoryName == "Blatant" then
-        local legacySpeed = modulesFrame:FindFirstChild("Speed")
-        if legacySpeed then legacySpeed:Destroy() end
-        local legacySpeedMenu = modulesFrame:FindFirstChild("SpeedMenu")
-        if legacySpeedMenu then legacySpeedMenu:Destroy() end
-        local legacySpeedOptions = modulesFrame:FindFirstChild("SpeedOptions")
-        if legacySpeedOptions then legacySpeedOptions:Destroy() end
+        for _, child in ipairs(modulesFrame:GetChildren()) do
+            if child.Name == "Speed" or child.Name == "SpeedMenu" or child.Name == "SpeedOptions" then
+                child:Destroy()
+            end
+        end
     end
 
     local container = Instance.new("Frame")
     container.Name = "LanternVapeRuntime"
-    container.Size = UDim2.new(1,0,0,0)
+    container.Size = UDim2.new(1, 0, 0, 0)
     container.AutomaticSize = Enum.AutomaticSize.Y
     container.BackgroundTransparency = 1
     container.BorderSizePixel = 0
     container.Parent = modulesFrame
 
     local list = Instance.new("UIListLayout")
-    list.Padding = UDim.new(0,5)
+    list.Padding = UDim.new(0, 5)
     list.SortOrder = Enum.SortOrder.LayoutOrder
     list.Parent = container
 
     local files = getJson(API .. "/" .. categoryName)
-    if not files then return 0 end
+    if not files then
+        categoryHeights[categoryName] = 108
+        return
+    end
 
     local moduleFiles = {}
     for _, item in ipairs(files) do
@@ -331,7 +371,7 @@ local function attachCategory(categoryName)
         end
     end
 
-    table.sort(moduleFiles, function(a,b)
+    table.sort(moduleFiles, function(a, b)
         return a.name:lower() < b.name:lower()
     end)
 
@@ -339,63 +379,79 @@ local function attachCategory(categoryName)
         local module = loadModule(item.path)
         if module then
             module.Category = module.Category or categoryName
-            -- UIListLayout is already sorted by insertion order here.
-            makeRow(container, module)
+            makeRow(container, module, function()
+                task.defer(function()
+                    if relayout then relayout() end
+                end)
+            end)
         end
     end
 
-    modulesFrame.AutomaticSize = Enum.AutomaticSize.Y
+    local function updateHeight()
+        categoryHeights[categoryName] = math.max(108, 46 + list.AbsoluteContentSize.Y)
+        if relayout then relayout() end
+    end
 
-    return math.max(minPanelHeight, 38 + list.AbsoluteContentSize.Y + 8)
+    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateHeight)
+    updateHeight()
 end
 
-local categoryHeights = {}
-for _, categoryName in ipairs({"Combat", "Blatant", "External", "Rendering", "Extra"}) do
-    if categoryDirectories[categoryName] then
-        categoryHeights[categoryName] = attachCategory(categoryName)
+local categoryNames = {"Combat", "Blatant", "External", "Rendering", "Extra"}
+local categoryDirs = getJson(API) or {}
+local existingDirs = {}
+
+for _, item in ipairs(categoryDirs) do
+    if item.type == "dir" and type(item.name) == "string" then
+        existingDirs[item.name] = true
     end
 end
 
-local function relayout()
+for _, name in ipairs(categoryNames) do
+    if existingDirs[name] then
+        attachCategory(name)
+    end
+end
+
+relayout = function()
     local width = categories.AbsoluteSize.X
     if width <= 0 then return end
 
-    local cols = maxColumns
-    local cellWidth = math.max(1, (width - gap*(cols-1))/cols)
-    local ordered = {"Combat", "Blatant", "External", "Rendering", "Extra"}
-    local rowMax = {}
+    local gap = 6
+    local columns = math.min(5, #categoryNames)
+    local cellWidth = math.max(1, (width - gap * (columns - 1)) / columns)
 
-    for i, name in ipairs(ordered) do
-        local r = math.floor((i-1)/cols) + 1
-        rowMax[r] = math.max(rowMax[r] or minPanelHeight, categoryHeights[name] or minPanelHeight)
+    local rowHeights = {}
+    for i, name in ipairs(categoryNames) do
+        local row = math.floor((i - 1) / columns) + 1
+        rowHeights[row] = math.max(rowHeights[row] or 108, categoryHeights[name] or 108)
     end
 
-    local yByRow = {}
+    local rowY = {}
     local y = 0
-    for r = 1, math.ceil(#ordered/cols) do
-        yByRow[r] = y
-        y = y + (rowMax[r] or minPanelHeight) + gap
+    for row = 1, math.ceil(#categoryNames / columns) do
+        rowY[row] = y
+        y = y + (rowHeights[row] or 108) + gap
     end
 
-    for i, name in ipairs(ordered) do
+    for i, name in ipairs(categoryNames) do
         local panel = categories:FindFirstChild(name)
         if panel then
-            local col = (i-1)%cols
-            local r = math.floor((i-1)/cols) + 1
-            panel.Size = UDim2.fromOffset(cellWidth, rowMax[r] or minPanelHeight)
-            panel.Position = UDim2.fromOffset(col*(cellWidth+gap), yByRow[r] or 0)
+            local column = (i - 1) % columns
+            local row = math.floor((i - 1) / columns) + 1
+            panel.Size = UDim2.fromOffset(cellWidth, rowHeights[row] or 108)
+            panel.Position = UDim2.fromOffset(column * (cellWidth + gap), rowY[row] or 0)
         end
     end
 
-    categories.CanvasSize = UDim2.fromOffset(0, math.max(0, y-gap))
+    categories.CanvasSize = UDim2.fromOffset(0, math.max(0, y - gap))
 end
 
 task.defer(relayout)
-task.delay(0.15, relayout)
-task.delay(0.5, relayout)
+task.delay(.1, relayout)
+task.delay(.5, relayout)
 
 categories:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
     task.defer(relayout)
 end)
 
-print("[LanternVape] Dynamic modules loaded")
+print("[LanternVape] Dynamic module system loaded")
