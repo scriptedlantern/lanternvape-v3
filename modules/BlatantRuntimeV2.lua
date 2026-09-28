@@ -324,11 +324,7 @@ local function createRow(container, module, resize)
 
         options.MouseButton1Click:Connect(toggleSettings)
 
-        options.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Touch then
-                toggleSettings()
-            end
-        end)
+
     end
 
     local function render()
@@ -338,7 +334,23 @@ local function createRow(container, module, resize)
         state.TextColor3 = enabled and WHITE or GRAY
     end
 
-    toggle.MouseButton1Click:Connect(function()
+    row.InputBegan:Connect(function(input)
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1
+            and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+
+        -- The options button owns the right-side click area.
+        if options then
+            local p = input.Position
+            local pos = options.AbsolutePosition
+            local size = options.AbsoluteSize
+            if p.X >= pos.X and p.X <= pos.X + size.X
+                and p.Y >= pos.Y and p.Y <= pos.Y + size.Y then
+                return
+            end
+        end
+
         if type(module.SetEnabled) ~= "function" then return end
 
         local ok, err = pcall(function()
